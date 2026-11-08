@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\OportunidadController;
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\ProductoController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +20,9 @@ Route::middleware(['auth', 'verified', 'panel.role:administrador,supervisor'])
         Route::get('/productos', [ProductoController::class, 'index'])->name('productos.index');
         Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes.index');
         Route::patch('/clientes/{cliente}/asignar', [ClienteController::class, 'assign'])->name('clientes.assign');
+        Route::get('/oportunidades', [OportunidadController::class, 'index'])->name('oportunidades.index');
+        Route::get('/actividades', [ActividadController::class, 'index'])->name('actividades.index');
+        Route::patch('/actividades/{actividad}/completar', [ActividadController::class, 'complete'])->name('actividades.complete');
     });
 
 Route::middleware(['auth', 'verified', 'panel.role:administrador'])
@@ -31,6 +36,14 @@ Route::middleware(['auth', 'verified', 'panel.role:administrador'])
         Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');
         Route::get('/clientes/{cliente}/editar', [ClienteController::class, 'edit'])->name('clientes.edit');
         Route::patch('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
+        Route::get('/oportunidades/crear', [OportunidadController::class, 'create'])->name('oportunidades.create');
+        Route::post('/oportunidades', [OportunidadController::class, 'store'])->name('oportunidades.store');
+        Route::get('/oportunidades/{oportunidad}/editar', [OportunidadController::class, 'edit'])->name('oportunidades.edit');
+        Route::patch('/oportunidades/{oportunidad}', [OportunidadController::class, 'update'])->name('oportunidades.update');
+        Route::get('/actividades/crear', [ActividadController::class, 'create'])->name('actividades.create');
+        Route::post('/actividades', [ActividadController::class, 'store'])->name('actividades.store');
+        Route::get('/actividades/{actividad}/editar', [ActividadController::class, 'edit'])->name('actividades.edit');
+        Route::patch('/actividades/{actividad}', [ActividadController::class, 'update'])->name('actividades.update');
     });
 
 Route::middleware('auth')->group(function () {
