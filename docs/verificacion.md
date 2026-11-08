@@ -54,3 +54,4 @@ sin una actividad `reunion` completada cuya descripción contenga `medicion` o
 Los seeders crean usuarios, productos, clientes, oportunidades, actividades e
 historial de etapas conforme al enunciado. Las contraseñas de demostración solo
 se utilizan en el entorno local de pruebas y no se guardan en archivos `.env`.
+La cartera admite hasta 10 clientes por vendedor. El panel valida altas y asignaciones, y la API devuelve 409 al intentar superar el límite. Editar un cliente sin cambiar su vendedor no consume otro cupo.

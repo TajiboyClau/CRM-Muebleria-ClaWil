@@ -8,6 +8,8 @@ use App\Http\Requests\UpdateClienteRequest;
 use App\Models\Cliente;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ClienteController extends Controller
@@ -40,7 +42,12 @@ class ClienteController extends Controller
 
     public function store(StoreClienteRequest $request): RedirectResponse
     {
-        Cliente::create($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data) {
+            $this->ensureSellerHasCapacity($data['vendedor_id'] ?? null);
+            Cliente::create($data);
+        });
 
         return to_route('clientes.index')->with('status', 'Cliente creado correctamente.');
     }
@@ -55,7 +62,17 @@ class ClienteController extends Controller
 
     public function update(UpdateClienteRequest $request, Cliente $cliente): RedirectResponse
     {
-        $cliente->update($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($cliente, $data) {
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
+
+            if (array_key_exists('vendedor_id', $data)) {
+                $this->ensureSellerHasCapacity($data['vendedor_id'], $cliente);
+            }
+
+            $cliente->update($data);
+        });
 
         return to_route('clientes.index')->with('status', 'Cliente actualizado correctamente.');
     }
@@ -63,32 +80,44 @@ class ClienteController extends Controller
     public function assign(AssignClienteRequest $request, Cliente $cliente): RedirectResponse
     {
         $sellerId = $request->validated('vendedor_id');
-
         $user = $request->user();
 
-        if ($user->rol === 'supervisor') {
-            abort_if(
-                $cliente->vendedor_id !== null && $cliente->vendedor?->supervisor_id !== $user->id,
-                404,
-            );
+        DB::transaction(function () use ($cliente, $sellerId, $user) {
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
 
-            if ($sellerId !== null) {
-                $seller = User::findOrFail($sellerId);
-                abort_unless($seller->supervisor_id === $user->id, 403);
+            if ($user->rol === 'supervisor') {
+                abort_if(
+                    $cliente->vendedor_id !== null && $cliente->vendedor?->supervisor_id !== $user->id,
+                    404,
+                );
             }
 
-            // Recheck the current assignment in the write in case it changed concurrently.
-            $updated = Cliente::query()->whereKey($cliente->id)
-                ->where(fn ($query) => $query->whereNull('vendedor_id')
-                    ->orWhereHas('vendedor', fn ($seller) => $seller->where('supervisor_id', $user->id)))
-                ->update(['vendedor_id' => $sellerId]);
-
-            abort_if($updated === 0, 404);
-        } else {
+            $this->ensureSellerHasCapacity($sellerId, $cliente, $user);
             $cliente->update(['vendedor_id' => $sellerId]);
-        }
+        });
 
         return to_route('clientes.index')->with('status', 'Asignación del cliente actualizada.');
+    }
+
+    private function ensureSellerHasCapacity(int|string|null $sellerId, ?Cliente $cliente = null, ?User $actor = null): void
+    {
+        if ($sellerId === null) {
+            return;
+        }
+
+        // The API locks the same seller row before adding a client.
+        $seller = User::lockForUpdate()->findOrFail($sellerId);
+
+        if ($actor?->rol === 'supervisor') {
+            abort_unless($seller->supervisor_id === $actor->id, 403);
+        }
+
+        if ((string) $cliente?->vendedor_id !== (string) $seller->id
+            && Cliente::where('vendedor_id', $seller->id)->count() >= 10) {
+            throw ValidationException::withMessages([
+                'vendedor_id' => 'El vendedor ya tiene 10 clientes asignados.',
+            ]);
+        }
     }
 
     private function availableSellers(User $user)

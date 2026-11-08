@@ -77,6 +77,49 @@ class ClienteManagementTest extends TestCase
         ]);
     }
 
+    public function test_panel_rejects_an_eleventh_client_but_allows_editing_an_existing_client(): void
+    {
+        $admin = User::factory()->create(['rol' => 'administrador', 'activo' => true]);
+        $seller = User::factory()->create(['rol' => 'vendedor', 'activo' => true]);
+
+        for ($i = 0; $i < 10; $i++) {
+            Cliente::create([
+                'nombre' => "Cliente $i",
+                'telefono' => (string) (55551000 + $i),
+                'vendedor_id' => $seller->id,
+            ]);
+        }
+
+        $available = Cliente::create(['nombre' => 'Disponible', 'telefono' => '55552000']);
+        $assigned = Cliente::where('vendedor_id', $seller->id)->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('clientes.store'), [
+                'nombre' => 'Cliente adicional',
+                'telefono' => '55552001',
+                'vendedor_id' => $seller->id,
+            ])->assertSessionHasErrors('vendedor_id');
+
+        $this->patch(route('clientes.assign', $available), ['vendedor_id' => $seller->id])
+            ->assertSessionHasErrors('vendedor_id');
+
+        $this->patch(route('clientes.update', $available), [
+            'nombre' => $available->nombre,
+            'telefono' => $available->telefono,
+            'vendedor_id' => $seller->id,
+        ])->assertSessionHasErrors('vendedor_id');
+
+        $this->patch(route('clientes.update', $assigned), [
+            'nombre' => 'Nombre actualizado',
+            'telefono' => $assigned->telefono,
+            'vendedor_id' => $seller->id,
+        ])->assertRedirect(route('clientes.index'));
+
+        $this->assertNull($available->refresh()->vendedor_id);
+        $this->assertSame('Nombre actualizado', $assigned->refresh()->nombre);
+        $this->assertSame(10, Cliente::where('vendedor_id', $seller->id)->count());
+    }
+
     public function test_vendor_cannot_access_the_panel_client_list(): void
     {
         $seller = User::factory()->create([
