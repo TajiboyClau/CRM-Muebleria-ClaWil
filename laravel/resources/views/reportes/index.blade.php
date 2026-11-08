@@ -1,11 +1,28 @@
 <x-app-layout>
-    <x-slot name="header"><h2 class="font-semibold text-xl text-gray-800 leading-tight">Reportes del CRM</h2></x-slot>
-    <div class="py-8"><div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            @foreach ([['Clientes', $clients], ['Productos activos', $products], ['Oportunidades', $opportunities], ['Actividades', $activities]] as [$label, $value])
-                <div class="rounded-lg bg-white p-6 shadow-sm"><p class="text-sm text-gray-500">{{ $label }}</p><p class="mt-2 text-3xl font-semibold text-gray-900">{{ $value }}</p></div>
-            @endforeach
-        </div>
-        <div class="rounded-lg bg-white p-6 shadow-sm"><h3 class="font-semibold text-gray-900">Oportunidades por etapa</h3><div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">@forelse ($stages as $stage => $total)<div class="rounded-md bg-indigo-50 p-4"><span class="text-sm text-indigo-700">{{ ucfirst($stage) }}</span><strong class="mt-1 block text-2xl text-indigo-900">{{ $total }}</strong></div>@empty<p class="text-sm text-gray-500">No hay datos para mostrar.</p>@endforelse</div></div>
-    </div></div>
+    <x-slot name="header"><h2 class="text-xl font-semibold">Reportes del CRM</h2></x-slot>
+    <div class="mx-auto max-w-7xl space-y-4 p-6">
+        <form method="GET" class="flex items-center gap-3">
+            <label for="mes">Mes</label>
+            <input type="month" id="mes" name="mes" value="{{ $mes }}" required>
+            <button class="rounded bg-indigo-700 px-3 py-2 text-white">Consultar</button>
+        </form>
+        @error('mes') <p class="text-red-700">{{ $message }}</p> @enderror
+        <section class="rounded bg-white p-4">
+            <p>Ventas: {{ $sales }}</p>
+            <p>Total vendido: Q{{ number_format($total, 2) }}</p>
+            <p>Pronóstico de oportunidades abiertas: Q{{ number_format($forecast, 2) }}</p>
+        </section>
+        <section class="rounded bg-white p-4">
+            <h3 class="font-semibold">Ventas por vendedor</h3>
+            @forelse ($bySeller as $seller)
+                <p>{{ $seller->name }} · {{ $seller->ventas }} ventas · Q{{ number_format($seller->total, 2) }}</p>
+            @empty <p>Sin ventas en el mes.</p> @endforelse
+        </section>
+        <section class="rounded bg-white p-4">
+            <h3 class="font-semibold">Ventas por producto</h3>
+            @forelse ($products as $product)
+                <p>{{ $product->nombre }} · {{ $product->unidades }} unidades · Q{{ number_format($product->total, 2) }}</p>
+            @empty <p>Sin productos vendidos en el mes.</p> @endforelse
+        </section>
+    </div>
 </x-app-layout>

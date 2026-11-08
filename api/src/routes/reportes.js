@@ -5,27 +5,35 @@ const { requireVendor } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireVendor);
 
-router.get('/resumen-mensual', async (req, res, next) => {
+router.get(['/resumen', '/resumen-mensual'], async (req, res, next) => {
+  const mes = req.query.mes ?? new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Guatemala', year: 'numeric', month: '2-digit',
+  }).format(new Date());
+  if (typeof mes !== 'string' || !/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/.test(mes)) {
+    return res.status(400).json({ error: 'El mes debe tener formato AAAA-MM.' });
+  }
+
   try {
-    const { rows: summary } = await db.query(
-      `SELECT COUNT(*) AS total_oportunidades,
-              COUNT(*) FILTER (WHERE etapa = 'ganada') AS ganadas,
-              COUNT(*) FILTER (WHERE etapa = 'perdida') AS perdidas,
-              COUNT(*) FILTER (WHERE etapa NOT IN ('ganada', 'perdida')) AS abiertas
-       FROM oportunidades
-       WHERE vendedor_id = $1 AND created_at >= date_trunc('month', CURRENT_DATE)
-         AND created_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`,
-      [req.user.id],
+    const { rows: [summary] } = await db.query(
+      `WITH montos AS (
+         SELECT o.etapa, o.fecha_cierre, COALESCE(SUM(l.cantidad * l.precio_unitario), 0) AS monto
+         FROM oportunidades o LEFT JOIN oportunidad_producto l ON l.oportunidad_id = o.id
+         WHERE o.vendedor_id = $1 GROUP BY o.id
+       ), ventas_mes AS (
+         SELECT monto FROM montos WHERE etapa = 'ganada'
+           AND fecha_cierre >= ($2 || '-01')::timestamp + INTERVAL '6 hours'
+           AND fecha_cierre < ($2 || '-01')::timestamp + INTERVAL '1 month 6 hours'
+       )
+       SELECT (SELECT COUNT(*)::int FROM ventas_mes) AS ventas,
+              (SELECT COALESCE(SUM(monto), 0)::float8 FROM ventas_mes) AS total,
+              (SELECT ROUND(COALESCE(SUM(monto * CASE etapa
+                 WHEN 'prospecto' THEN 0.10 WHEN 'calificado' THEN 0.25
+                 WHEN 'propuesta' THEN 0.50 WHEN 'negociacion' THEN 0.75 ELSE 0 END), 0), 2)::float8 FROM montos) AS pronostico,
+              (SELECT COUNT(*)::int FROM clientes WHERE vendedor_id = $1) AS clientes`,
+      [req.user.id, mes],
     );
-    const { rows: activities } = await db.query(
-      `SELECT COUNT(*) AS total_actividades,
-              COUNT(*) FILTER (WHERE completada = TRUE) AS completadas
-       FROM actividades
-       WHERE vendedor_id = $1 AND created_at >= date_trunc('month', CURRENT_DATE)
-         AND created_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`,
-      [req.user.id],
-    );
-    res.json({ periodo: new Date().toISOString().slice(0, 7), oportunidades: summary[0], actividades: activities[0] });
+    const { clientes, ...totals } = summary;
+    res.json({ mes, ...totals, cartera: { clientes, maximo: 10 } });
   } catch (error) { next(error); }
 });
 

@@ -28,5 +28,5 @@ export const api = {
   activities: () => request('/actividades'),
   createActivity: (payload) => request('/actividades', { method: 'POST', body: JSON.stringify(payload) }),
   completeActivity: (id, completada) => request(`/actividades/${id}/completar`, { method: 'PATCH', body: JSON.stringify({ completada }) }),
-  monthlySummary: () => request('/reportes/resumen-mensual'),
+  monthlySummary: (mes) => request('/reportes/resumen' + (mes ? '?mes=' + encodeURIComponent(mes) : '')),
 };

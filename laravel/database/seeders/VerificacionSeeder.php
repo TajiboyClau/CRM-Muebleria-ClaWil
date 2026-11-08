@@ -11,7 +11,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
-class VerificationSeeder extends Seeder
+class VerificacionSeeder extends Seeder
 {
     public function run(): void
     {
@@ -72,6 +72,10 @@ class VerificationSeeder extends Seeder
         $clients['Taller El Volcán'] = $this->client($carlos, 'Taller El Volcán', '22233342', '77651003');
         $clients['Ana Xicará'] = $this->client($carlos, 'Ana Xicará', null, '30001004');
         $clients['Librería Cantel'] = $this->client($carlos, 'Librería Cantel', '55566677', '77651005');
+        $this->client($carlos, 'Pedro Batz', null, '30001006');
+        $this->client($carlos, 'Tienda La Bendición', null, '30001007');
+        $this->client($carlos, 'Distribuidora Occidente', '77788893', '77651008');
+        $this->client($carlos, 'Rosa Tax', null, '30001009');
         $clients['Hotel Los Pinos'] = $this->client($ivan, 'Hotel Los Pinos', '66655544', '77661001');
         $clients['Agencia Cuatro Caminos'] = $this->client(null, 'Agencia Cuatro Caminos', null, '30002001');
         $clients['Café Zunil'] = $this->client(null, 'Café Zunil', null, '30002002');
@@ -185,7 +189,7 @@ class VerificationSeeder extends Seeder
             $this->historyFor($opportunity);
         }
 
-        $this->activity($clients['Comercial El Quetzal'], $valeria, 'llamada', 'Confirmar fecha de instalación.', '2026-10-15 15:00:00', true);
+        $this->activity($clients['Comercial El Quetzal'], $valeria, 'llamada', 'Confirmar fecha de instalación.', '2026-10-08 15:00:00', true);
         $this->activity($clients['Ferretería Xela'], $valeria, 'tarea', 'Enviar propuesta de capacitación.', '2030-01-15 15:00:00', false);
         $this->activity($clients['María Coyoy'], $valeria, 'reunion', 'Presentar opciones de soporte.', '2026-09-01 15:00:00', false);
         $this->activity($clients['Farmacia Los Altos'], $diego, 'llamada', 'Renovación de licencias.', '2030-02-01 15:00:00', false);

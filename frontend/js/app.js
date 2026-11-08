@@ -42,13 +42,27 @@ async function loadData() {
 }
 
 function renderStats() {
-  const opportunities = state.summary?.oportunidades || {};
-  const activities = state.summary?.actividades || {};
+  const money = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
+  const summary = state.summary;
   document.querySelector('#stats').innerHTML = [
-    ['Oportunidades abiertas', opportunities.abiertas || 0],
-    ['Oportunidades ganadas', opportunities.ganadas || 0],
-    ['Actividades pendientes', Math.max((activities.total_actividades || 0) - (activities.completadas || 0), 0)],
-  ].map(([label, value]) => `<div class="col-md-4"><div class="card crm-card crm-stat p-3"><div class="text-secondary small">${label}</div><div class="display-6 fw-semibold">${value}</div></div></div>`).join('');
+    ['Ventas', summary.ventas],
+    ['Total vendido', money.format(summary.total)],
+    ['Pronóstico', money.format(summary.pronostico)],
+  ].map(([label, value]) => '<div class="col-md-4"><div class="card crm-card p-3">' +
+    '<div class="text-secondary">' + label + '</div><strong>' + value + '</strong></div></div>').join('');
+  const controls = document.createElement('div');
+  controls.className = 'col-12';
+  controls.innerHTML = '<label for="report-month">Mes del reporte</label> <input id="report-month" type="month">';
+  const month = controls.querySelector('input');
+  month.value = summary.mes;
+  month.addEventListener('change', async () => {
+    if (!month.value) return;
+    try {
+      state.summary = await api.monthlySummary(month.value);
+      if (month.isConnected) renderStats();
+    } catch (error) { showError(error); }
+  });
+  document.querySelector('#stats').append(controls);
 }
 
 function renderClients() {
