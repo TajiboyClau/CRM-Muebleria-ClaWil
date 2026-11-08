@@ -7,9 +7,9 @@ router.use(requireVendor);
 
 router.get('/', async (req, res, next) => {
   try {
-    const [rows] = await db.execute(
+    const { rows } = await db.query(
       `SELECT id, nombre, nit, telefono, correo, vendedor_id, created_at, updated_at
-       FROM clientes WHERE vendedor_id = ? OR vendedor_id IS NULL ORDER BY nombre`,
+       FROM clientes WHERE vendedor_id = $1 OR vendedor_id IS NULL ORDER BY nombre`,
       [req.user.id],
     );
     res.json({ datos: rows });
@@ -22,14 +22,14 @@ router.post('/', async (req, res, next) => {
     if (!nombre || !/^\d{8}$/.test(String(telefono || ''))) {
       return res.status(422).json({ mensaje: 'Nombre y teléfono de 8 dígitos son obligatorios.' });
     }
-    const [result] = await db.execute(
-      'INSERT INTO clientes (vendedor_id, nombre, nit, telefono, correo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+    const { rows: inserted } = await db.query(
+      'INSERT INTO clientes (vendedor_id, nombre, nit, telefono, correo, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id',
       [req.user.id, nombre, nit, telefono, correo],
     );
-    const [rows] = await db.execute('SELECT id, nombre, nit, telefono, correo, vendedor_id FROM clientes WHERE id = ?', [result.insertId]);
+    const { rows } = await db.query('SELECT id, nombre, nit, telefono, correo, vendedor_id FROM clientes WHERE id = $1', [inserted[0].id]);
     res.status(201).json({ dato: rows[0] });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ mensaje: 'NIT o teléfono ya registrado.' });
+    if (error.code === '23505') return res.status(409).json({ mensaje: 'NIT o teléfono ya registrado.' });
     next(error);
   }
 });

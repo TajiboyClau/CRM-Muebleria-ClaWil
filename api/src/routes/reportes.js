@@ -7,17 +7,22 @@ router.use(requireVendor);
 
 router.get('/resumen-mensual', async (req, res, next) => {
   try {
-    const [summary] = await db.execute(
+    const { rows: summary } = await db.query(
       `SELECT COUNT(*) AS total_oportunidades,
-              SUM(etapa = 'ganada') AS ganadas,
-              SUM(etapa = 'perdida') AS perdidas,
-              SUM(etapa NOT IN ('ganada', 'perdida')) AS abiertas
-       FROM oportunidades WHERE vendedor_id = ? AND YEAR(created_at) = YEAR(CURRENT_DATE()) AND MONTH(created_at) = MONTH(CURRENT_DATE())`,
+              COUNT(*) FILTER (WHERE etapa = 'ganada') AS ganadas,
+              COUNT(*) FILTER (WHERE etapa = 'perdida') AS perdidas,
+              COUNT(*) FILTER (WHERE etapa NOT IN ('ganada', 'perdida')) AS abiertas
+       FROM oportunidades
+       WHERE vendedor_id = $1 AND created_at >= date_trunc('month', CURRENT_DATE)
+         AND created_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`,
       [req.user.id],
     );
-    const [activities] = await db.execute(
-      `SELECT COUNT(*) AS total_actividades, SUM(completada = 1) AS completadas
-       FROM actividades WHERE vendedor_id = ? AND YEAR(created_at) = YEAR(CURRENT_DATE()) AND MONTH(created_at) = MONTH(CURRENT_DATE())`,
+    const { rows: activities } = await db.query(
+      `SELECT COUNT(*) AS total_actividades,
+              COUNT(*) FILTER (WHERE completada = TRUE) AS completadas
+       FROM actividades
+       WHERE vendedor_id = $1 AND created_at >= date_trunc('month', CURRENT_DATE)
+         AND created_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`,
       [req.user.id],
     );
     res.json({ periodo: new Date().toISOString().slice(0, 7), oportunidades: summary[0], actividades: activities[0] });

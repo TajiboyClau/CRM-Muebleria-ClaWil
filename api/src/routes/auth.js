@@ -10,8 +10,8 @@ router.post('/login', async (req, res, next) => {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(422).json({ mensaje: 'Correo y contraseña son obligatorios.' });
 
-    const [rows] = await db.execute(
-      'SELECT id, name, email, password, rol, supervisor_id, activo FROM users WHERE email = ? LIMIT 1',
+    const { rows } = await db.query(
+      'SELECT id, name, email, password, rol, supervisor_id, activo FROM users WHERE email = $1 LIMIT 1',
       [email],
     );
     const user = rows[0];

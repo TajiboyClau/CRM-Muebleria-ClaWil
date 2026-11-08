@@ -13,7 +13,7 @@ información.
 - `laravel/`: panel web para administrador y supervisor.
 - `api/`: API REST en Express para vendedores.
 - `frontend/`: SPA del vendedor con HTML, Bootstrap y JavaScript modular.
-- MySQL: base de datos compartida por las tres piezas.
+- PostgreSQL 16: base de datos compartida por las tres piezas.
 
 ## Estado del proyecto
 
@@ -29,12 +29,12 @@ La documentación del proyecto se encuentra en `docs/`.
 
 ## Ejecución local
 
-1. Preparar MySQL 8.4 y configurar las variables de entorno de Laravel y la API.
+1. Preparar PostgreSQL 16 y configurar las variables de entorno de Laravel y la API.
 2. En `laravel/`, instalar dependencias, ejecutar migraciones y seeders, y levantar el panel.
 3. En `api/`, copiar `.env.example` a `.env`, instalar dependencias y ejecutar `npm start`.
 4. Abrir `frontend/index.html` con un servidor estático y usar las credenciales de un vendedor creado por los seeders.
 
-La API consulta el esquema creado por Laravel mediante `mysql2`; no contiene
+La API consulta el esquema creado por Laravel mediante `pg`; no contiene
 sentencias `CREATE` ni `ALTER`.
 
 ## Equipo

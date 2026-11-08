@@ -13,14 +13,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('oportunidad_id')->constrained('oportunidades')->cascadeOnDelete();
             $table->foreignId('producto_id')->constrained('productos')->restrictOnDelete();
-            $table->unsignedSmallInteger('cantidad');
+            $table->smallInteger('cantidad');
             $table->decimal('precio_unitario', 10, 2);
             $table->timestamps();
 
             $table->unique(['oportunidad_id', 'producto_id']);
         });
 
-        if (Schema::getConnection()->getDriverName() === 'mysql') {
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
             DB::statement('ALTER TABLE oportunidad_producto ADD CONSTRAINT chk_oportunidad_producto_cantidad CHECK (cantidad BETWEEN 1 AND 999)');
             DB::statement('ALTER TABLE oportunidad_producto ADD CONSTRAINT chk_oportunidad_producto_precio CHECK (precio_unitario > 0)');
         }

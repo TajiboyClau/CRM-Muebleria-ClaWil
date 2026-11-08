@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        if (Schema::getConnection()->getDriverName() === 'mysql') {
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
             DB::statement('ALTER TABLE productos ADD CONSTRAINT chk_productos_precio CHECK (precio > 0)');
         }
     }

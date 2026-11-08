@@ -1,15 +1,11 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
-const pool = mysql.createPool({
+const pool = new Pool({
   host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 3306),
+  port: Number(process.env.DB_PORT || 5432),
   database: process.env.DB_NAME || 'crm_muebleria',
-  user: process.env.DB_USER || 'root',
+  user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
-  waitForConnections: true,
-  connectionLimit: 10,
-  namedPlaceholders: true,
-  dateStrings: true,
 });
 
 module.exports = pool;

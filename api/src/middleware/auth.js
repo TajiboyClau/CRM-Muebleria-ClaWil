@@ -16,8 +16,8 @@ async function requireAuth(req, res, next) {
     if (!token) return res.status(401).json({ mensaje: 'Token requerido.' });
 
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'development-secret');
-    const [rows] = await db.execute(
-      'SELECT id, name, email, rol, supervisor_id, activo FROM users WHERE id = ? LIMIT 1',
+    const { rows } = await db.query(
+      'SELECT id, name, email, rol, supervisor_id, activo FROM users WHERE id = $1 LIMIT 1',
       [payload.sub],
     );
     if (!rows[0] || !rows[0].activo) return res.status(401).json({ mensaje: 'Usuario inactivo o inexistente.' });

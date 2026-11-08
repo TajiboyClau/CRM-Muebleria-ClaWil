@@ -8,10 +8,11 @@
 | Laravel | Migraciones, seeders, autenticación y panel | Equipo | Completo |
 | API | JWT, middleware, clientes, oportunidades y reportes | Equipo | Completo |
 | SPA | Login, cartera, embudo, actividades y resumen mensual | Equipo | Completo |
-| Integración | Conectar panel, API, SPA y MySQL | Equipo | Completo |
+| Integración | Conectar panel, API, SPA y PostgreSQL | Equipo | Completo |
 | Verificación | Pruebas, seguridad, Postman y documentación | Equipo | Completo |
 
-La API y la SPA utilizarán el esquema definido por las migraciones de Laravel.
+La API y la SPA utilizarán el esquema definido por las migraciones de Laravel
+en PostgreSQL 16.
 Las tareas se organizarán en ramas de trabajo y se integrarán después de ser
 probadas.
 
@@ -37,6 +38,6 @@ resultado será revisado, probado y comprendido por ambos integrantes.
 1. Revisar y aprobar `docs/especificacion.md`.
 2. Completar los nombres del equipo.
 3. Confirmar la regla propia.
-4. Crear el entorno Laravel, API y MySQL.
+4. Crear el entorno Laravel, API y PostgreSQL.
 5. Implementar panel, API, SPA y pruebas de integración básicas.
 

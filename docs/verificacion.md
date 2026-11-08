@@ -22,8 +22,8 @@ npm start
 ```
 
 Con la API levantada se comprueban `/health`, el login de vendedor, la cartera
-de clientes y `/api/reportes/resumen-mensual`. Las consultas utilizan `mysql2`
-con parámetros y la API no contiene migraciones.
+de clientes y `/api/reportes/resumen-mensual`. Las consultas utilizan `pg` con
+parámetros y la API no contiene migraciones.
 
 ## Pruebas de la SPA
 
