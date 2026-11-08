@@ -37,8 +37,8 @@ function dashboardTemplate() {
 }
 
 async function loadData() {
-  const [clients, opportunities, activities, summary] = await Promise.all([api.clients(), api.opportunities(), api.activities(), api.monthlySummary()]);
-  state.clients = clients.datos; state.opportunities = opportunities.datos; state.activities = activities.datos; state.summary = summary;
+  const [clients, availableClients, opportunities, activities, summary] = await Promise.all([api.clients(), api.availableClients(), api.opportunities(), api.activities(), api.monthlySummary()]);
+  state.clients = clients.datos; state.availableClients = availableClients; state.opportunities = opportunities.datos; state.activities = activities.datos; state.summary = summary;
 }
 
 function renderStats() {
@@ -53,6 +53,42 @@ function renderStats() {
 
 function renderClients() {
   document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Mi cartera</h2><button class="btn btn-primary btn-sm" id="new-client">Nuevo cliente</button></div><div class="table-responsive"><table class="table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th></th></tr></thead><tbody>${state.clients.map((client) => `<tr><td>${escapeHtml(client.nombre)}</td><td>${escapeHtml(client.telefono)}</td><td>${escapeHtml(client.correo || 'Sin correo')}</td><td><button class="btn btn-outline-secondary btn-sm client-activity" data-id="${client.id}">Actividad</button></td></tr>`).join('') || '<tr><td colspan="4" class="text-center">No hay clientes disponibles.</td></tr>'}</tbody></table></div></div></div>`;
+  const available = document.createElement('section');
+  available.className = 'card crm-card mt-3 p-3';
+  const title = document.createElement('h2');
+  title.className = 'h5';
+  title.textContent = 'Clientes disponibles · ' + state.clients.length + ' de 10 en cartera';
+  available.append(title);
+
+  if (state.availableClients.length === 0) {
+    available.append('No hay clientes disponibles.');
+  }
+
+  for (const client of state.availableClients) {
+    const row = document.createElement('div');
+    row.className = 'd-flex justify-content-between align-items-center py-2';
+    const name = document.createElement('span');
+    name.textContent = client.nombre;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-outline-primary btn-sm';
+    button.textContent = 'Tomar cliente';
+    button.disabled = state.clients.length >= 10;
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await api.claimClient(client.id);
+        await dashboardView();
+      } catch (error) {
+        showError(error);
+        button.disabled = false;
+      }
+    });
+    row.append(name, button);
+    available.append(row);
+  }
+
+  document.querySelector('#section-content').append(available);
   document.querySelector('#new-client').addEventListener('click', () => clientForm());
   document.querySelectorAll('.client-activity').forEach((button) => button.addEventListener('click', () => { document.querySelector('[data-section="activities"]').click(); activityForm(Number(button.dataset.id)); }));
 }

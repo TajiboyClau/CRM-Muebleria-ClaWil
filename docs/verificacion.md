@@ -55,3 +55,4 @@ Los seeders crean usuarios, productos, clientes, oportunidades, actividades e
 historial de etapas conforme al enunciado. Las contraseñas de demostración solo
 se utilizan en el entorno local de pruebas y no se guardan en archivos `.env`.
 La cartera admite hasta 10 clientes por vendedor. El panel valida altas y asignaciones, y la API devuelve 409 al intentar superar el límite. Editar un cliente sin cambiar su vendedor no consume otro cupo.
+La SPA separa la cartera de los clientes disponibles. La lista de disponibles expone solo id y nombre. Si dos vendedores toman el mismo cliente a la vez, la API asigna el cliente a uno y devuelve 409 al otro.

@@ -11,13 +11,15 @@ async function request(path, options = {}) {
     },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.mensaje || 'No se pudo completar la operación.');
+  if (!response.ok) throw new Error(data.error || data.mensaje || 'No se pudo completar la operación.');
   return data;
 }
 
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   clients: () => request('/clientes'),
+  availableClients: () => request('/clientes/disponibles'),
+  claimClient: (id) => request('/clientes/' + encodeURIComponent(id) + '/tomar', { method: 'POST' }),
   createClient: (payload) => request('/clientes', { method: 'POST', body: JSON.stringify(payload) }),
   opportunities: () => request('/oportunidades'),
   createOpportunity: (payload) => request('/oportunidades', { method: 'POST', body: JSON.stringify(payload) }),

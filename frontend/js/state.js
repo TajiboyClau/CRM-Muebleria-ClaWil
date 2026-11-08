@@ -1,6 +1,7 @@
 export const state = {
   user: JSON.parse(localStorage.getItem('crm_user') || 'null'),
   clients: [],
+  availableClients: [],
   opportunities: [],
   activities: [],
   summary: null,
