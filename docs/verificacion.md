@@ -9,8 +9,8 @@ php artisan test
 ```
 
 La suite cubre autenticación, relaciones del CRM, permisos por rol, catálogo,
-clientes, oportunidades, actividades y la regla de medición para muebles a
-medida.
+clientes, oportunidades, actividades, reportes, administración de usuarios y
+la regla de medición para muebles a medida.
 
 ## Pruebas de la API
 
@@ -35,6 +35,9 @@ La carpeta `frontend/` contiene una SPA estática con módulos JavaScript para:
 - Embudo y cambios de etapa.
 - Actividades y marcado de completadas.
 - Resumen mensual.
+
+El panel administrativo también incluye reportes por etapa y administración de
+cuentas, mientras que el supervisor consulta indicadores de su equipo.
 
 ## Regla propia validada
 
