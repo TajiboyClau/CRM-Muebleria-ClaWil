@@ -12,6 +12,12 @@ class EnsurePanelRole
     {
         $user = $request->user();
 
+        if ($user && !$user->activo) {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
         abort_unless(
             $user && $user->activo && in_array($user->rol, $roles, true),
             403,

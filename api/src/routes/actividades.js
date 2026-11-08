@@ -5,7 +5,7 @@ const { requireVendor } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireVendor);
 const columns = `a.id, json_build_object('id', c.id, 'nombre', c.nombre) AS cliente,
-  a.tipo, a.descripcion, a.vence_en, a.completada,
+  a.tipo, a.descripcion, a.vence_en AT TIME ZONE 'UTC' AS vence_en, a.completada,
   (NOT a.completada AND COALESCE(a.vence_en < NOW() AT TIME ZONE 'UTC', FALSE)) AS vencida`;
 const validId = id => /^[1-9]\d{0,18}$/.test(id) && BigInt(id) <= 9223372036854775807n;
 

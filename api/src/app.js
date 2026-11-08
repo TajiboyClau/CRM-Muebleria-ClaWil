@@ -14,7 +14,7 @@ const reportRoutes = require('./routes/reportes');
 
 const app = express();
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: process.env.SPA_ORIGIN || 'http://127.0.0.1:5500' }));
 app.use(express.json());
 app.use(morgan('combined'));
 

@@ -22,8 +22,8 @@ class ClienteManagementTest extends TestCase
         $this->actingAs($admin)
             ->post(route('clientes.store'), [
                 'nombre' => 'Muebles El Roble',
-                'nit' => '12345678',
-                'telefono' => '55551234',
+                'nit' => '00452 1817-k',
+                'telefono' => '+502 5555-1234',
                 'correo' => 'compras@elroble.test',
             ])
             ->assertRedirect(route('clientes.index'));
@@ -33,7 +33,7 @@ class ClienteManagementTest extends TestCase
         $this->actingAs($admin)
             ->patch(route('clientes.update', $cliente), [
                 'nombre' => 'Muebles El Roble Premium',
-                'nit' => '12345678',
+                'nit' => '00452 1817-k',
                 'telefono' => '55551235',
                 'correo' => 'ventas@elroble.test',
             ])

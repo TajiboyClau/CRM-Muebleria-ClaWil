@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreClienteRequest extends FormRequest
+class StoreClienteRequest extends ClienteRequest
 {
     public function authorize(): bool
     {
@@ -16,8 +15,8 @@ class StoreClienteRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:150'],
-            'nit' => ['nullable', 'string', 'max:12', 'unique:clientes,nit'],
-            'telefono' => ['required', 'digits:8', 'unique:clientes,telefono'],
+            'nit' => ['nullable', 'string', 'max:12', $this->nitRule(), 'unique:clientes,nit'],
+            'telefono' => ['required', 'regex:/^[2-9][0-9]{7}$/D', 'unique:clientes,telefono'],
             'correo' => ['nullable', 'email', 'max:150'],
             'vendedor_id' => [
                 'nullable',

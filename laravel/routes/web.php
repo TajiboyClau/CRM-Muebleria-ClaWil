@@ -39,10 +39,6 @@ Route::middleware(['auth', 'verified', 'panel.role:administrador'])
         Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');
         Route::get('/clientes/{cliente}/editar', [ClienteController::class, 'edit'])->name('clientes.edit');
         Route::patch('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
-        Route::get('/oportunidades/crear', [OportunidadController::class, 'create'])->name('oportunidades.create');
-        Route::post('/oportunidades', [OportunidadController::class, 'store'])->name('oportunidades.store');
-        Route::get('/oportunidades/{oportunidad}/editar', [OportunidadController::class, 'edit'])->name('oportunidades.edit');
-        Route::patch('/oportunidades/{oportunidad}', [OportunidadController::class, 'update'])->name('oportunidades.update');
         Route::get('/actividades/crear', [ActividadController::class, 'create'])->name('actividades.create');
         Route::post('/actividades', [ActividadController::class, 'store'])->name('actividades.store');
         Route::get('/actividades/{actividad}/editar', [ActividadController::class, 'edit'])->name('actividades.edit');
@@ -50,13 +46,14 @@ Route::middleware(['auth', 'verified', 'panel.role:administrador'])
         Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
         Route::get('/usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
         Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+        Route::get('/usuarios/{usuario}/editar', [UsuarioController::class, 'edit'])->name('usuarios.edit');
+        Route::patch('/usuarios/{usuario}', [UsuarioController::class, 'update'])->name('usuarios.update');
         Route::patch('/usuarios/{usuario}/estado', [UsuarioController::class, 'toggle'])->name('usuarios.toggle');
     });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'panel.role:administrador,supervisor'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';

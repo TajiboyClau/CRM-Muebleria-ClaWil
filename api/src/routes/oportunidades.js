@@ -18,15 +18,23 @@ async function canWinCustomOpportunity(connection, clienteId, titulo) {
 }
 
 router.get('/', async (req, res, next) => {
+  const { etapa } = req.query;
+  if (etapa !== undefined && !STAGES.includes(etapa)) {
+    return res.status(400).json({ error: 'Etapa inválida.' });
+  }
   try {
     const { rows } = await db.query(
       `SELECT o.id, o.cliente_id, c.nombre AS cliente, o.titulo, o.etapa, o.motivo_perdida,
-              o.fecha_cierre, o.created_at, o.updated_at
+              o.fecha_cierre AT TIME ZONE 'UTC' AS fecha_cierre,
+              COALESCE((SELECT SUM(cantidad * precio_unitario) FROM oportunidad_producto WHERE oportunidad_id = o.id), 0)::float8 AS total
        FROM oportunidades o JOIN clientes c ON c.id = o.cliente_id
-       WHERE o.vendedor_id = $1 ORDER BY o.updated_at DESC`,
-      [req.user.id],
+       WHERE o.vendedor_id = $1 AND ($2::text IS NULL OR o.etapa = $2) ORDER BY o.updated_at DESC`,
+      [req.user.id, etapa ?? null],
     );
-    res.json({ datos: rows });
+    res.json(rows.map(({ cliente_id, cliente, ...item }) => ({
+      ...item, cliente: { id: cliente_id, nombre: cliente },
+      probabilidad: [10, 25, 50, 75, 100, 0][STAGES.indexOf(item.etapa)],
+    })));
   } catch (error) { next(error); }
 });
 
@@ -65,7 +73,7 @@ async function transaction(work) {
 async function findOpportunity(connection, id, sellerId, lock = false) {
   if (!validId(id)) fail(404, 'Oportunidad no encontrada.');
   const { rows: [item] } = await connection.query(
-    'SELECT * FROM oportunidades WHERE id = $1 AND vendedor_id = $2' + (lock ? ' FOR UPDATE' : ''),
+    "SELECT *, fecha_cierre AT TIME ZONE 'UTC' AS cierre_utc FROM oportunidades WHERE id = $1 AND vendedor_id = $2" + (lock ? ' FOR UPDATE' : ''),
     [id, sellerId],
   );
   if (!item) fail(404, 'Oportunidad no encontrada.');
@@ -85,13 +93,13 @@ async function detail(connection, item) {
      WHERE c.id = $2 GROUP BY c.id`, [item.id, item.cliente_id],
   );
   const { rows: historial } = await connection.query(
-    `SELECT h.etapa_anterior, h.etapa_nueva, u.name AS usuario, h.created_at AS fecha
+    `SELECT h.etapa_anterior, h.etapa_nueva, u.name AS usuario, h.created_at AT TIME ZONE 'UTC' AS fecha
      FROM historial_etapas h JOIN users u ON u.id = h.usuario_id
      WHERE h.oportunidad_id = $1 ORDER BY h.id`, [item.id],
   );
   return {
     id: item.id, titulo: item.titulo, etapa: item.etapa,
-    fecha_cierre: item.fecha_cierre, motivo_perdida: item.motivo_perdida,
+    fecha_cierre: item.cierre_utc ?? null, motivo_perdida: item.motivo_perdida,
     cliente: { id: summary.id, nombre: summary.nombre },
     probabilidad: [10, 25, 50, 75, 100, 0][STAGES.indexOf(item.etapa)],
     total: summary.total, productos, historial,
@@ -213,7 +221,7 @@ router.patch('/:id/etapa', async (req, res, next) => {
       const { rows: [updated] } = await connection.query(
         `UPDATE oportunidades
          SET etapa = $1, motivo_perdida = $2, fecha_cierre = CASE WHEN $3 THEN NOW() ELSE NULL END, updated_at = NOW()
-         WHERE id = $4 RETURNING *`,
+         WHERE id =  RETURNING *, fecha_cierre AT TIME ZONE 'UTC' AS cierre_utc`,
         [etapa, reason, CLOSED.includes(etapa), item.id],
       );
       await connection.query(

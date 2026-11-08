@@ -3,10 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Models\Cliente;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateClienteRequest extends FormRequest
+class UpdateClienteRequest extends ClienteRequest
 {
     public function authorize(): bool
     {
@@ -23,13 +22,14 @@ class UpdateClienteRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:12',
+                $this->nitRule(),
                 Rule::unique('clientes', 'nit')->ignore(
                     $cliente instanceof Cliente ? $cliente->getKey() : $cliente
                 ),
             ],
             'telefono' => [
                 'required',
-                'digits:8',
+                'regex:/^[2-9][0-9]{7}$/D',
                 Rule::unique('clientes', 'telefono')->ignore(
                     $cliente instanceof Cliente ? $cliente->getKey() : $cliente
                 ),
