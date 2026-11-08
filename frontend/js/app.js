@@ -153,13 +153,40 @@ function opportunityProducts(id) {
   render().catch(error => { dialog.close(); showError(error); });
 }
 
+const stageOptions = {
+  prospecto: ['prospecto', 'calificado'],
+  calificado: ['calificado', 'propuesta'],
+  propuesta: ['propuesta', 'negociacion', 'perdida'],
+  negociacion: ['negociacion', 'ganada', 'perdida'],
+};
+
 function renderOpportunities() {
-  document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Embudo de ventas</h2><button class="btn btn-primary btn-sm" id="new-opportunity">Nueva oportunidad</button></div><div class="table-responsive"><table class="table"><thead><tr><th>Título</th><th>Cliente</th><th>Etapa</th><th>Actualizar</th></tr></thead><tbody>${state.opportunities.map((item) => `<tr><td>${escapeHtml(item.titulo)}</td><td>${escapeHtml(item.cliente)}</td><td>${escapeHtml(item.etapa)}</td><td><select class="form-select form-select-sm stage-select" data-id="${item.id}">${['prospecto','calificado','propuesta','negociacion','ganada','perdida'].map((stage) => `<option ${stage === item.etapa ? 'selected' : ''}>${stage}</option>`).join('')}</select><button type="button" class="btn btn-link btn-sm opportunity-products" data-id="${escapeHtml(item.id)}">Productos</button></td></tr>`).join('') || '<tr><td colspan="4" class="text-center">No hay oportunidades.</td></tr>'}</tbody></table></div></div></div>`;
+  document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Embudo de ventas</h2><button class="btn btn-primary btn-sm" id="new-opportunity">Nueva oportunidad</button></div><div class="table-responsive"><table class="table"><thead><tr><th>Título</th><th>Cliente</th><th>Etapa</th><th>Actualizar</th></tr></thead><tbody>${state.opportunities.map((item) => `<tr><td>${escapeHtml(item.titulo)}</td><td>${escapeHtml(item.cliente)}</td><td>${escapeHtml(item.etapa)}</td><td><select class="form-select form-select-sm stage-select" data-id="${item.id}" ${['ganada', 'perdida'].includes(item.etapa) ? 'disabled' : ''}>${(stageOptions[item.etapa] || [item.etapa]).map((stage) => `<option ${stage === item.etapa ? 'selected' : ''}>${stage}</option>`).join('')}</select><button type="button" class="btn btn-link btn-sm opportunity-products" data-id="${escapeHtml(item.id)}">Productos</button></td></tr>`).join('') || '<tr><td colspan="4" class="text-center">No hay oportunidades.</td></tr>'}</tbody></table></div></div></div>`;
   document.querySelectorAll('.opportunity-products').forEach(button => {
     button.addEventListener('click', () => opportunityProducts(button.dataset.id));
   });
   document.querySelector('#new-opportunity').addEventListener('click', opportunityForm);
-  document.querySelectorAll('.stage-select').forEach((select) => select.addEventListener('change', async () => { try { await api.changeStage(select.dataset.id, { etapa: select.value, fecha_cierre: ['ganada', 'perdida'].includes(select.value) ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null, motivo_perdida: select.value === 'perdida' ? window.prompt('Motivo de pérdida') : null }); await dashboardView(); } catch (error) { showError(error); } }));
+
+  document.querySelectorAll('.stage-select').forEach(select => select.addEventListener('change', async () => {
+    const item = state.opportunities.find(opportunity => String(opportunity.id) === select.dataset.id);
+    const etapa = select.value;
+    const motivo = etapa === 'perdida' ? window.prompt('Motivo de pérdida') : null;
+    if (etapa === 'perdida' && !motivo?.trim()) {
+      select.value = item.etapa;
+      return;
+    }
+    select.disabled = true;
+    try {
+      await api.changeStage(item.id, { etapa, ...(motivo ? { motivo_perdida: motivo } : {}) });
+      await dashboardView();
+      document.querySelector('[data-section="opportunities"]')?.click();
+    } catch (error) {
+      select.value = item.etapa;
+      showError(error);
+    } finally {
+      select.disabled = false;
+    }
+  }));
 }
 
 function renderActivities() {
@@ -173,7 +200,7 @@ function formModal(title, body, onSubmit) {
 }
 
 function clientForm() { formModal('Nuevo cliente', '<input class="form-control mb-3" name="nombre" placeholder="Nombre completo o empresa" required><input class="form-control mb-3" name="telefono" placeholder="Teléfono de 8 dígitos" pattern="[0-9]{8}" required><input class="form-control mb-3" name="nit" placeholder="NIT"><input class="form-control" name="correo" type="email" placeholder="Correo">', (form) => api.createClient(Object.fromEntries(form))); }
-function opportunityForm() { formModal('Nueva oportunidad', `<select class="form-select mb-3" name="cliente_id" required>${state.clients.map((client) => `<option value="${client.id}">${escapeHtml(client.nombre)}</option>`).join('')}</select><input class="form-control mb-3" name="titulo" placeholder="Título" required><select class="form-select" name="etapa"><option>prospecto</option><option>calificado</option><option>propuesta</option></select>`, (form) => api.createOpportunity(Object.fromEntries(form))); }
+function opportunityForm() { formModal('Nueva oportunidad', `<select class="form-select mb-3" name="cliente_id" required>${state.clients.map((client) => `<option value="${client.id}">${escapeHtml(client.nombre)}</option>`).join('')}</select><input class="form-control mb-3" name="titulo" placeholder="Título" required>`, (form) => api.createOpportunity(Object.fromEntries(form))); }
 function activityForm(clientId = '') { formModal('Nueva actividad', `<select class="form-select mb-3" name="cliente_id" required>${state.clients.map((client) => `<option value="${client.id}" ${String(client.id) === String(clientId) ? 'selected' : ''}>${escapeHtml(client.nombre)}</option>`).join('')}</select><select class="form-select mb-3" name="tipo"><option>llamada</option><option>reunion</option><option>tarea</option></select><textarea class="form-control" name="descripcion" placeholder="Descripción" required></textarea>`, (form) => api.createActivity(Object.fromEntries(form))); }
 
 async function dashboardView() {

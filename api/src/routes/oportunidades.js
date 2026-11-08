@@ -6,9 +6,9 @@ const STAGES = ['prospecto', 'calificado', 'propuesta', 'negociacion', 'ganada',
 const router = express.Router();
 router.use(requireVendor);
 
-async function canWinCustomOpportunity(clienteId, titulo) {
+async function canWinCustomOpportunity(connection, clienteId, titulo) {
   if (!String(titulo).toLowerCase().includes('a medida')) return true;
-  const { rows } = await db.query(
+  const { rows } = await connection.query(
     `SELECT a.id FROM actividades a
      WHERE a.cliente_id = $1 AND a.tipo = 'reunion' AND a.completada = TRUE
      AND (LOWER(a.descripcion) LIKE '%medicion%' OR LOWER(a.descripcion) LIKE '%medición%') LIMIT 1`,
@@ -152,45 +152,77 @@ router.post('/:id/productos', productChange('post'));
 router.patch('/:id/productos/:lineaId', productChange('patch'));
 router.delete('/:id/productos/:lineaId', productChange('delete'));
 
+
 router.post('/', async (req, res, next) => {
   try {
-    const { cliente_id, titulo, etapa = 'prospecto', motivo_perdida = null, fecha_cierre = null } = req.body || {};
-    if (!cliente_id || !titulo || !STAGES.includes(etapa)) return res.status(422).json({ mensaje: 'Cliente, título y etapa válida son obligatorios.' });
-    const { rows: clients } = await db.query('SELECT id FROM clientes WHERE id = $1 AND (vendedor_id = $2 OR vendedor_id IS NULL)', [cliente_id, req.user.id]);
-    if (!clients[0]) return res.status(403).json({ mensaje: 'El cliente no pertenece a tu cartera.' });
-    if (etapa === 'perdida' && !motivo_perdida) return res.status(422).json({ mensaje: 'Una oportunidad perdida necesita motivo.' });
-    if (['ganada', 'perdida'].includes(etapa) && !fecha_cierre) return res.status(422).json({ mensaje: 'Una oportunidad cerrada necesita fecha de cierre.' });
-    if (etapa === 'ganada' && !(await canWinCustomOpportunity(cliente_id, titulo))) return res.status(422).json({ mensaje: 'Una oportunidad a medida necesita una reunión de medición completada.' });
+    const { cliente_id, titulo } = req.body || {};
+    const title = typeof titulo === 'string' ? titulo.trim() : '';
+    if (!validId(cliente_id) || !title || title.length > 150) fail(422, 'Cliente y título válido son obligatorios.');
 
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
-      const { rows: inserted } = await client.query(
-        `INSERT INTO oportunidades (cliente_id, vendedor_id, titulo, etapa, motivo_perdida, fecha_cierre, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING id`,
-        [cliente_id, req.user.id, titulo, etapa, etapa === 'perdida' ? motivo_perdida : null, ['ganada', 'perdida'].includes(etapa) ? fecha_cierre : null],
+    const result = await transaction(async connection => {
+      const { rowCount } = await connection.query(
+        'SELECT id FROM clientes WHERE id = $1 AND vendedor_id = $2 FOR UPDATE', [cliente_id, req.user.id],
       );
-      await client.query('INSERT INTO historial_etapas (oportunidad_id, usuario_id, etapa_anterior, etapa_nueva, created_at) VALUES ($1, $2, NULL, $3, NOW())', [inserted[0].id, req.user.id, etapa]);
-      await client.query('COMMIT');
-      res.status(201).json({ id: inserted[0].id, mensaje: 'Oportunidad creada.' });
-    } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
-  } catch (error) { next(error); }
+      if (!rowCount) fail(404, 'El cliente no pertenece a tu cartera.');
+      const { rows: [item] } = await connection.query(
+        `INSERT INTO oportunidades (cliente_id, vendedor_id, titulo, etapa, created_at, updated_at)
+         VALUES ($1, $2, $3, 'prospecto', NOW(), NOW()) RETURNING *`,
+        [cliente_id, req.user.id, title],
+      );
+      await connection.query(
+        "INSERT INTO historial_etapas (oportunidad_id, usuario_id, etapa_anterior, etapa_nueva, created_at) VALUES ($1, $2, NULL, 'prospecto', NOW())",
+        [item.id, req.user.id],
+      );
+      return detail(connection, item);
+    });
+    res.status(201).json(result);
+  } catch (error) { respondError(error, res, next); }
 });
 
 router.patch('/:id/etapa', async (req, res, next) => {
   try {
-    const { etapa, motivo_perdida = null, fecha_cierre = null } = req.body || {};
-    if (!STAGES.includes(etapa)) return res.status(422).json({ mensaje: 'Etapa inválida.' });
-    const { rows } = await db.query('SELECT * FROM oportunidades WHERE id = $1 AND vendedor_id = $2', [req.params.id, req.user.id]);
-    const opportunity = rows[0];
-    if (!opportunity) return res.status(404).json({ mensaje: 'Oportunidad no encontrada.' });
-    if (etapa === 'perdida' && !motivo_perdida) return res.status(422).json({ mensaje: 'Una oportunidad perdida necesita motivo.' });
-    if (['ganada', 'perdida'].includes(etapa) && !fecha_cierre) return res.status(422).json({ mensaje: 'Una oportunidad cerrada necesita fecha de cierre.' });
-    if (etapa === 'ganada' && !(await canWinCustomOpportunity(opportunity.cliente_id, opportunity.titulo))) return res.status(422).json({ mensaje: 'Una oportunidad a medida necesita una reunión de medición completada.' });
-    await db.query('UPDATE oportunidades SET etapa = $1, motivo_perdida = $2, fecha_cierre = $3, updated_at = NOW() WHERE id = $4', [etapa, etapa === 'perdida' ? motivo_perdida : null, ['ganada', 'perdida'].includes(etapa) ? fecha_cierre : null, opportunity.id]);
-    await db.query('INSERT INTO historial_etapas (oportunidad_id, usuario_id, etapa_anterior, etapa_nueva, created_at) VALUES ($1, $2, $3, $4, NOW())', [opportunity.id, req.user.id, opportunity.etapa, etapa]);
-    res.json({ mensaje: 'Etapa actualizada.' });
-  } catch (error) { next(error); }
+    const { etapa, motivo_perdida } = req.body || {};
+    if (!STAGES.includes(etapa)) fail(422, 'Etapa inválida.');
+
+    const result = await transaction(async connection => {
+      const item = await findOpportunity(connection, req.params.id, req.user.id, true);
+      if (CLOSED.includes(item.etapa)) fail(409, 'La oportunidad ya está cerrada.');
+      if (item.etapa === etapa) fail(409, 'La oportunidad ya está en esa etapa.');
+
+      const allowed = etapa === 'perdida'
+        ? ['propuesta', 'negociacion'].includes(item.etapa)
+        : STAGES.indexOf(etapa) === STAGES.indexOf(item.etapa) + 1;
+      if (!allowed) fail(422, 'No se puede pasar a esa etapa desde la etapa actual.');
+
+      let reason = null;
+      if (etapa === 'perdida') {
+        reason = typeof motivo_perdida === 'string' ? motivo_perdida.trim() : '';
+        if (!reason || reason.length > 255) fail(422, 'Escribe un motivo de pérdida de 1 a 255 caracteres.');
+      }
+      if (etapa === 'ganada') {
+        const { rowCount } = await connection.query(
+          'SELECT 1 FROM oportunidad_producto WHERE oportunidad_id = $1 LIMIT 1', [item.id],
+        );
+        if (!rowCount) fail(422, 'Agrega al menos un producto para ganar la oportunidad.');
+        if (!(await canWinCustomOpportunity(connection, item.cliente_id, item.titulo))) {
+          fail(422, 'Una oportunidad a medida necesita una reunión de medición completada.');
+        }
+      }
+
+      const { rows: [updated] } = await connection.query(
+        `UPDATE oportunidades
+         SET etapa = $1, motivo_perdida = $2, fecha_cierre = CASE WHEN $3 THEN NOW() ELSE NULL END, updated_at = NOW()
+         WHERE id = $4 RETURNING *`,
+        [etapa, reason, CLOSED.includes(etapa), item.id],
+      );
+      await connection.query(
+        'INSERT INTO historial_etapas (oportunidad_id, usuario_id, etapa_anterior, etapa_nueva, created_at) VALUES ($1, $2, $3, $4, NOW())',
+        [item.id, req.user.id, item.etapa, etapa],
+      );
+      return detail(connection, updated);
+    });
+    res.json(result);
+  } catch (error) { respondError(error, res, next); }
 });
 
 module.exports = router;
