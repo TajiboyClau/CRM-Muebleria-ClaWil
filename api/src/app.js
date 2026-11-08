@@ -4,7 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const { requireAuth } = require('./middleware/auth');
+const { requireAuth, requireVendor } = require('./middleware/auth');
+const db = require('./db');
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clientes');
 const opportunityRoutes = require('./routes/oportunidades');
@@ -19,6 +20,12 @@ app.use(morgan('combined'));
 
 app.get('/health', (_req, res) => res.json({ estado: 'ok', servicio: 'crm-muebleria-api' }));
 app.use('/api/auth', authRoutes);
+app.get('/api/productos', requireAuth, requireVendor, async (_req, res, next) => {
+  try {
+    const { rows } = await db.query('SELECT id, nombre, precio::float8 AS precio FROM productos WHERE activo = TRUE ORDER BY nombre');
+    res.json(rows);
+  } catch (error) { next(error); }
+});
 app.use('/api/clientes', requireAuth, clientRoutes);
 app.use('/api/oportunidades', requireAuth, opportunityRoutes);
 app.use('/api/actividades', requireAuth, activityRoutes);

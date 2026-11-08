@@ -16,6 +16,7 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  opportunityRequest: request,
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   clients: () => request('/clientes'),
   availableClients: () => request('/clientes/disponibles'),

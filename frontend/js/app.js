@@ -93,8 +93,71 @@ function renderClients() {
   document.querySelectorAll('.client-activity').forEach((button) => button.addEventListener('click', () => { document.querySelector('[data-section="activities"]').click(); activityForm(Number(button.dataset.id)); }));
 }
 
+
+function opportunityProducts(id) {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'rounded border p-4 w-75';
+  const money = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
+  const path = '/oportunidades/' + encodeURIComponent(id);
+  dialog.addEventListener('close', () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+
+  async function render() {
+    const [item, catalog] = await Promise.all([api.opportunityRequest(path), api.opportunityRequest('/productos')]);
+    if (!dialog.open) return;
+    const closed = ['ganada', 'perdida'].includes(item.etapa);
+    const lines = item.productos.map(line =>
+      '<li class="mb-2">' + escapeHtml(line.nombre) + ' · ' + line.cantidad + ' × ' +
+      money.format(line.precio_unitario) + ' = ' + money.format(line.subtotal) +
+      (closed ? '' : '<form class="d-flex gap-2 mt-1" data-line="' + escapeHtml(line.id) + '">' +
+        '<input type="number" name="cantidad" aria-label="Cantidad" min="1" max="999" required value="' + line.cantidad + '">' +
+        '<button class="btn btn-sm btn-outline-primary">Guardar</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-danger" data-remove>Quitar</button></form>') + '</li>',
+    ).join('');
+    dialog.innerHTML = '<button type="button" class="btn-close float-end" aria-label="Cerrar"></button>' +
+      '<h2 class="h5">' + escapeHtml(item.titulo) + '</h2><p class="text-danger" role="alert"></p>' +
+      '<ul>' + lines + '</ul><p><strong>Total: ' + money.format(item.total) + '</strong></p>' +
+      (closed || !catalog.length ? '' : '<form class="d-flex flex-wrap gap-2">' +
+        '<select name="producto_id" aria-label="Producto" required>' + catalog.map(product =>
+          '<option value="' + escapeHtml(product.id) + '">' + escapeHtml(product.nombre) + ' · ' +
+          money.format(product.precio) + '</option>').join('') + '</select>' +
+        '<input type="number" name="cantidad" aria-label="Cantidad" min="1" max="999" required value="1">' +
+        '<button class="btn btn-sm btn-primary">Agregar</button></form>');
+    dialog.querySelector('.btn-close').onclick = () => dialog.close();
+  }
+
+  async function mutate(method, form) {
+    try {
+      const data = new FormData(form);
+      const line = form.dataset.line;
+      await api.opportunityRequest(path + '/productos' + (line ? '/' + encodeURIComponent(line) : ''), {
+        method,
+        ...(method === 'DELETE' ? {} : { body: JSON.stringify({
+          producto_id: data.get('producto_id'), cantidad: Number(data.get('cantidad')),
+        }) }),
+      });
+      await render();
+    } catch (error) {
+      if (dialog.open) dialog.querySelector('[role="alert"]').textContent = error.message;
+    }
+  }
+
+  dialog.addEventListener('submit', event => {
+    event.preventDefault();
+    mutate(event.target.dataset.line ? 'PATCH' : 'POST', event.target);
+  });
+  dialog.addEventListener('click', event => {
+    if (event.target.matches('[data-remove]')) mutate('DELETE', event.target.closest('form'));
+  });
+  render().catch(error => { dialog.close(); showError(error); });
+}
+
 function renderOpportunities() {
-  document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Embudo de ventas</h2><button class="btn btn-primary btn-sm" id="new-opportunity">Nueva oportunidad</button></div><div class="table-responsive"><table class="table"><thead><tr><th>Título</th><th>Cliente</th><th>Etapa</th><th>Actualizar</th></tr></thead><tbody>${state.opportunities.map((item) => `<tr><td>${escapeHtml(item.titulo)}</td><td>${escapeHtml(item.cliente)}</td><td>${escapeHtml(item.etapa)}</td><td><select class="form-select form-select-sm stage-select" data-id="${item.id}">${['prospecto','calificado','propuesta','negociacion','ganada','perdida'].map((stage) => `<option ${stage === item.etapa ? 'selected' : ''}>${stage}</option>`).join('')}</select></td></tr>`).join('') || '<tr><td colspan="4" class="text-center">No hay oportunidades.</td></tr>'}</tbody></table></div></div></div>`;
+  document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Embudo de ventas</h2><button class="btn btn-primary btn-sm" id="new-opportunity">Nueva oportunidad</button></div><div class="table-responsive"><table class="table"><thead><tr><th>Título</th><th>Cliente</th><th>Etapa</th><th>Actualizar</th></tr></thead><tbody>${state.opportunities.map((item) => `<tr><td>${escapeHtml(item.titulo)}</td><td>${escapeHtml(item.cliente)}</td><td>${escapeHtml(item.etapa)}</td><td><select class="form-select form-select-sm stage-select" data-id="${item.id}">${['prospecto','calificado','propuesta','negociacion','ganada','perdida'].map((stage) => `<option ${stage === item.etapa ? 'selected' : ''}>${stage}</option>`).join('')}</select><button type="button" class="btn btn-link btn-sm opportunity-products" data-id="${escapeHtml(item.id)}">Productos</button></td></tr>`).join('') || '<tr><td colspan="4" class="text-center">No hay oportunidades.</td></tr>'}</tbody></table></div></div></div>`;
+  document.querySelectorAll('.opportunity-products').forEach(button => {
+    button.addEventListener('click', () => opportunityProducts(button.dataset.id));
+  });
   document.querySelector('#new-opportunity').addEventListener('click', opportunityForm);
   document.querySelectorAll('.stage-select').forEach((select) => select.addEventListener('change', async () => { try { await api.changeStage(select.dataset.id, { etapa: select.value, fecha_cierre: ['ganada', 'perdida'].includes(select.value) ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null, motivo_perdida: select.value === 'perdida' ? window.prompt('Motivo de pérdida') : null }); await dashboardView(); } catch (error) { showError(error); } }));
 }
