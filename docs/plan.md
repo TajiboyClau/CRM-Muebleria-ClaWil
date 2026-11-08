@@ -11,6 +11,37 @@
 | Integración | Conectar panel, API, SPA y MySQL | Ambos | Pendiente |
 | Verificación | Pruebas, seguridad, Postman y documentación | Ambos | Pendiente |
 
+## División por ramas
+
+### Rama `clau`: panel y base de datos
+
+- Crear y configurar el proyecto Laravel.
+- Crear las migraciones del esquema común.
+- Crear `VerificationSeeder` y `SectorSeeder`.
+- Implementar autenticación con Breeze y roles.
+- Implementar el panel del administrador y supervisor.
+- Implementar catálogo, clientes, equipos, oportunidades y reportes del panel.
+
+### Rama `wil`: API y SPA
+
+- Crear y configurar la API Express.
+- Implementar login JWT y middleware de autenticación.
+- Implementar clientes, cartera, oportunidades, productos y actividades.
+- Implementar reportes de la API.
+- Crear la SPA del vendedor con HTML, Bootstrap y JavaScript modular.
+- Crear y mantener la colección de Postman.
+
+### Rama `main`: integración
+
+- Recibir cambios probados de `clau` y `wil`.
+- Verificar que Laravel, API, SPA y MySQL funcionen juntos.
+- Ejecutar las pruebas de seguridad y reglas de negocio.
+- Preparar la etiqueta final `entrega-final`.
+
+La API y la SPA utilizarán el esquema definido por las migraciones de Laravel.
+Por eso primero se acuerdan el contrato y las tablas, aunque ambas áreas puedan
+avanzar en paralelo.
+
 ## Integrantes
 
 - Claudia Estefanía Zorin Tajiboy - 202408031.
