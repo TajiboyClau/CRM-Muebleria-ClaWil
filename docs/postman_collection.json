@@ -1,0 +1,46 @@
+{
+  "info": {
+    "name": "CRM Mueblería ClaWil",
+    "description": "Operaciones principales de la API para vendedores.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "cliente_id", "value": "" },
+    { "key": "oportunidad_id", "value": "" },
+    { "key": "actividad_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] } }
+    },
+    {
+      "name": "Login vendedor",
+      "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.collectionVariables.set('token', data.token);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"valeria@crm.test\",\n  \"password\": \"Ventas2026\"\n}" },
+        "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
+      }
+    },
+    {
+      "name": "Clientes de mi cartera",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/clientes", "host": ["{{base_url}}"], "path": ["api", "clientes"] } }
+    },
+    {
+      "name": "Oportunidades",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/oportunidades", "host": ["{{base_url}}"], "path": ["api", "oportunidades"] } }
+    },
+    {
+      "name": "Actividades",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/actividades", "host": ["{{base_url}}"], "path": ["api", "actividades"] } }
+    },
+    {
+      "name": "Resumen mensual",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/reportes/resumen-mensual", "host": ["{{base_url}}"], "path": ["api", "reportes", "resumen-mensual"] } }
+    }
+  ]
+}

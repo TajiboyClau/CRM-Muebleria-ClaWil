@@ -1,0 +1,9 @@
+:root { --crm-blue: #234b70; --crm-gold: #d8a84e; }
+body { min-height: 100vh; }
+.crm-brand { color: var(--crm-blue); letter-spacing: .04em; }
+.crm-card { border: 0; box-shadow: 0 0.35rem 1.2rem rgba(35, 75, 112, .08); }
+.crm-stat { border-left: .35rem solid var(--crm-gold); }
+.table > :not(caption) > * > * { vertical-align: middle; }
+.status-open { color: #0d6efd; }
+.status-done { color: #198754; }
+.status-lost { color: #dc3545; }

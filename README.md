@@ -20,12 +20,22 @@ información.
 - [x] Repositorio creado.
 - [x] Especificación inicial.
 - [x] Plan de trabajo inicial.
-- [ ] Panel Laravel.
-- [ ] API REST.
-- [ ] SPA del vendedor.
-- [ ] Pruebas y documentación final.
+- [x] Panel Laravel con autenticación, catálogo, clientes, oportunidades y actividades.
+- [x] API REST con JWT, cartera, oportunidades, actividades y resumen mensual.
+- [x] SPA del vendedor con Bootstrap y JavaScript modular.
+- [x] Pruebas automatizadas, colección de Postman y verificación técnica.
 
 La documentación del proyecto se encuentra en `docs/`.
+
+## Ejecución local
+
+1. Preparar MySQL 8.4 y configurar las variables de entorno de Laravel y la API.
+2. En `laravel/`, instalar dependencias, ejecutar migraciones y seeders, y levantar el panel.
+3. En `api/`, copiar `.env.example` a `.env`, instalar dependencias y ejecutar `npm start`.
+4. Abrir `frontend/index.html` con un servidor estático y usar las credenciales de un vendedor creado por los seeders.
+
+La API consulta el esquema creado por Laravel mediante `mysql2`; no contiene
+sentencias `CREATE` ni `ALTER`.
 
 ## Equipo
 
