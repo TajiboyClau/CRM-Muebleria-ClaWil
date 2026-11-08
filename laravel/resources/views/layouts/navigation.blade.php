@@ -27,6 +27,14 @@
                     <x-nav-link :href="route('actividades.index')" :active="request()->routeIs('actividades.*')">
                         {{ __('Actividades') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('reportes.index')" :active="request()->routeIs('reportes.*')">
+                        {{ __('Reportes') }}
+                    </x-nav-link>
+                    @if (auth()->user()->rol === 'administrador')
+                        <x-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
+                            {{ __('Usuarios') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -94,6 +102,14 @@
             <x-responsive-nav-link :href="route('actividades.index')" :active="request()->routeIs('actividades.*')">
                 {{ __('Actividades') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('reportes.index')" :active="request()->routeIs('reportes.*')">
+                {{ __('Reportes') }}
+            </x-responsive-nav-link>
+            @if (auth()->user()->rol === 'administrador')
+                <x-responsive-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
+                    {{ __('Usuarios') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

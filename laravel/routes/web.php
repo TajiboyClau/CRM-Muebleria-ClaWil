@@ -4,6 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\OportunidadController;
 use App\Http\Controllers\ActividadController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\ProductoController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +25,7 @@ Route::middleware(['auth', 'verified', 'panel.role:administrador,supervisor'])
         Route::get('/oportunidades', [OportunidadController::class, 'index'])->name('oportunidades.index');
         Route::get('/actividades', [ActividadController::class, 'index'])->name('actividades.index');
         Route::patch('/actividades/{actividad}/completar', [ActividadController::class, 'complete'])->name('actividades.complete');
+        Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     });
 
 Route::middleware(['auth', 'verified', 'panel.role:administrador'])
@@ -44,6 +47,10 @@ Route::middleware(['auth', 'verified', 'panel.role:administrador'])
         Route::post('/actividades', [ActividadController::class, 'store'])->name('actividades.store');
         Route::get('/actividades/{actividad}/editar', [ActividadController::class, 'edit'])->name('actividades.edit');
         Route::patch('/actividades/{actividad}', [ActividadController::class, 'update'])->name('actividades.update');
+        Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+        Route::get('/usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
+        Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+        Route::patch('/usuarios/{usuario}/estado', [UsuarioController::class, 'toggle'])->name('usuarios.toggle');
     });
 
 Route::middleware('auth')->group(function () {
