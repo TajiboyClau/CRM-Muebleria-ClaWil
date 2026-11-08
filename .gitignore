@@ -1,0 +1,27 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build and coverage output
+dist/
+build/
+coverage/
+
+# Laravel and local tooling
+laravel/storage/*.key
+laravel/storage/framework/cache/*
+laravel/storage/framework/sessions/*
+laravel/storage/framework/views/*
+laravel/storage/logs/*
+
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
