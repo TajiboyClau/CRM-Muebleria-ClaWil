@@ -13,7 +13,10 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        {{ __('Panel') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('productos.index')" :active="request()->routeIs('productos.*')">
+                        {{ __('Catálogo') }}
                     </x-nav-link>
                 </div>
             </div>
@@ -68,7 +71,10 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+                {{ __('Panel') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('productos.index')" :active="request()->routeIs('productos.*')">
+                {{ __('Catálogo') }}
             </x-responsive-nav-link>
         </div>
 
