@@ -12,6 +12,10 @@ La suite cubre autenticación, relaciones del CRM, permisos por rol, catálogo,
 clientes, oportunidades, actividades, reportes, administración de usuarios y
 la regla de medición para muebles a medida.
 
+El supervisor solo ve oportunidades de sus vendedores. Puede asignar clientes
+disponibles o de su equipo a vendedores de su equipo y liberar sus clientes.
+Si intenta asignar o liberar un cliente de otro equipo, el panel devuelve 404.
+
 ## Pruebas de la API
 
 Desde `api/` se ejecutan:

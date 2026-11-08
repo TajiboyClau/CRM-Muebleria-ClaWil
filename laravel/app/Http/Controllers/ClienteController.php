@@ -64,12 +64,29 @@ class ClienteController extends Controller
     {
         $sellerId = $request->validated('vendedor_id');
 
-        if (auth()->user()->rol === 'supervisor' && $sellerId) {
-            $seller = User::findOrFail($sellerId);
-            abort_unless($seller->supervisor_id === auth()->id(), 403);
-        }
+        $user = $request->user();
 
-        $cliente->update(['vendedor_id' => $sellerId]);
+        if ($user->rol === 'supervisor') {
+            abort_if(
+                $cliente->vendedor_id !== null && $cliente->vendedor?->supervisor_id !== $user->id,
+                404,
+            );
+
+            if ($sellerId !== null) {
+                $seller = User::findOrFail($sellerId);
+                abort_unless($seller->supervisor_id === $user->id, 403);
+            }
+
+            // Recheck the current assignment in the write in case it changed concurrently.
+            $updated = Cliente::query()->whereKey($cliente->id)
+                ->where(fn ($query) => $query->whereNull('vendedor_id')
+                    ->orWhereHas('vendedor', fn ($seller) => $seller->where('supervisor_id', $user->id)))
+                ->update(['vendedor_id' => $sellerId]);
+
+            abort_if($updated === 0, 404);
+        } else {
+            $cliente->update(['vendedor_id' => $sellerId]);
+        }
 
         return to_route('clientes.index')->with('status', 'Asignación del cliente actualizada.');
     }
