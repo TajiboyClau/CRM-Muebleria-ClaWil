@@ -22,7 +22,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"valeria@crm.test\",\n  \"password\": \"Ventas2026\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"correo\": \"valeria@crm.test\",\n  \"clave\": \"Ventas2026\"\n}" },
         "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
       }
     },
@@ -40,7 +40,7 @@
     },
     {
       "name": "Resumen mensual",
-      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/reportes/resumen-mensual", "host": ["{{base_url}}"], "path": ["api", "reportes", "resumen-mensual"] } }
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/reportes/resumen", "host": ["{{base_url}}"], "path": ["api", "reportes", "resumen"] } }
     }
   ]
 }

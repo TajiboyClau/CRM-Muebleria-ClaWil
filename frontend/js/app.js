@@ -28,7 +28,7 @@ function loginView() {
 }
 
 function layout(content) {
-  root.innerHTML = `<nav class="navbar navbar-dark bg-primary rounded-3 mb-4 px-3"><span class="navbar-brand">CRM Mueblería ClaWil</span><div class="d-flex align-items-center gap-3 text-white"><span>${escapeHtml(state.user?.name || '')}</span><button id="logout" class="btn btn-outline-light btn-sm">Salir</button></div></nav><div id="message"></div>${content}`;
+  root.innerHTML = `<nav class="navbar navbar-dark bg-primary rounded-3 mb-4 px-3"><span class="navbar-brand">CRM Mueblería ClaWil</span><div class="d-flex align-items-center gap-3 text-white"><span>${escapeHtml(state.user?.nombre || state.user?.name || '')}</span><button id="logout" class="btn btn-outline-light btn-sm">Salir</button></div></nav><div id="message"></div>${content}`;
   root.querySelector('#logout').addEventListener('click', () => { clearSession(); loginView(); });
 }
 
@@ -38,7 +38,7 @@ function dashboardTemplate() {
 
 async function loadData() {
   const [clients, availableClients, opportunities, activities, summary] = await Promise.all([api.clients(), api.availableClients(), api.opportunities(), api.activities(), api.monthlySummary()]);
-  state.clients = clients.datos; state.availableClients = availableClients; state.opportunities = opportunities.datos; state.activities = activities.datos; state.summary = summary;
+  state.clients = clients; state.availableClients = availableClients; state.opportunities = opportunities.datos; state.activities = activities; state.summary = summary;
 }
 
 function renderStats() {
@@ -204,7 +204,7 @@ function renderOpportunities() {
 }
 
 function renderActivities() {
-  document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Seguimiento</h2><button class="btn btn-primary btn-sm" id="new-activity">Nueva actividad</button></div><div class="list-group">${state.activities.map((item) => `<div class="list-group-item d-flex justify-content-between align-items-center"><div><strong>${escapeHtml(item.tipo)}</strong> · ${escapeHtml(item.cliente)}<div class="text-secondary">${escapeHtml(item.descripcion)}</div></div><button class="btn btn-sm ${item.completada ? 'btn-outline-secondary' : 'btn-success'} activity-complete" data-id="${item.id}" data-value="${item.completada ? 0 : 1}">${item.completada ? 'Reabrir' : 'Completar'}</button></div>`).join('') || '<div class="text-center text-secondary">No hay actividades.</div>'}</div></div></div>`;
+  document.querySelector('#section-content').innerHTML = `<div class="card crm-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Seguimiento</h2><button class="btn btn-primary btn-sm" id="new-activity">Nueva actividad</button></div><div class="list-group">${state.activities.map((item) => `<div class="list-group-item d-flex justify-content-between align-items-center"><div><strong>${escapeHtml(item.tipo)}</strong> · ${escapeHtml(item.cliente.nombre)}<div class="text-secondary">${escapeHtml(item.descripcion)}</div></div><button class="btn btn-sm ${item.completada ? 'btn-outline-secondary' : 'btn-success'} activity-complete" data-id="${item.id}" data-value="${item.completada ? 0 : 1}">${item.completada ? 'Reabrir' : 'Completar'}</button></div>`).join('') || '<div class="text-center text-secondary">No hay actividades.</div>'}</div></div></div>`;
   document.querySelector('#new-activity').addEventListener('click', () => activityForm());
   document.querySelectorAll('.activity-complete').forEach((button) => button.addEventListener('click', async () => { try { await api.completeActivity(button.dataset.id, Number(button.dataset.value)); await dashboardView(); } catch (error) { showError(error); } }));
 }

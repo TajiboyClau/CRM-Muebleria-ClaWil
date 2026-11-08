@@ -37,11 +37,12 @@ function validId(value) {
   return /^[1-9]\d{0,18}$/.test(String(value)) && BigInt(value) <= 9223372036854775807n;
 }
 
-function fail(status, message) {
-  throw Object.assign(new Error(message), { status });
+function fail(status, message, field) {
+  throw Object.assign(new Error(message), { status, field });
 }
 
 function respondError(error, res, next) {
+  if (error.status === 422) return res.status(422).json({ errores: { [error.field || 'solicitud']: error.message } });
   if (error.status) return res.status(error.status).json({ error: error.message });
   next(error);
 }
@@ -225,4 +226,20 @@ router.patch('/:id/etapa', async (req, res, next) => {
   } catch (error) { respondError(error, res, next); }
 });
 
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const result = await transaction(async connection => {
+      const item = await findOpportunity(connection, req.params.id, req.user.id, true);
+      if (CLOSED.includes(item.etapa)) fail(409, 'La oportunidad ya está cerrada.');
+      const title = typeof req.body?.titulo === 'string' ? req.body.titulo.trim() : '';
+      if (!title || title.length > 150) fail(422, 'Escriba un título de 1 a 150 caracteres.', 'titulo');
+      const { rows: [updated] } = await connection.query(
+        'UPDATE oportunidades SET titulo = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+        [title, item.id],
+      );
+      return detail(connection, updated);
+    });
+    res.json(result);
+  } catch (error) { respondError(error, res, next); }
+});
 module.exports = router;

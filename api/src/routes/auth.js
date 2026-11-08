@@ -4,28 +4,34 @@ const db = require('../db');
 const { requireAuth, signToken } = require('../middleware/auth');
 
 const router = express.Router();
+const publicUser = user => ({ id: user.id, nombre: user.name, correo: user.email });
 
 router.post('/login', async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(422).json({ mensaje: 'Correo y contraseña son obligatorios.' });
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ error: 'Envíe un objeto JSON.' });
+    }
+    const { correo, clave } = req.body;
+    const errores = {};
+    if (typeof correo !== 'string' || !correo.trim()) errores.correo = 'Ingrese su correo.';
+    if (typeof clave !== 'string' || !clave) errores.clave = 'Ingrese su contraseña.';
+    if (Object.keys(errores).length) return res.status(422).json({ errores });
 
-    const { rows } = await db.query(
-      'SELECT id, name, email, password, rol, supervisor_id, activo FROM users WHERE email = $1 LIMIT 1',
-      [email],
+    const { rows: [user] } = await db.query(
+      'SELECT id, name, email, password, rol, activo FROM users WHERE email = $1 LIMIT 1',
+      [correo.trim()],
     );
-    const user = rows[0];
-    if (!user || user.rol !== 'vendedor' || !user.activo || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
+    if (!user || !(await bcrypt.compare(clave, user.password))) {
+      return res.status(401).json({ error: 'Credenciales inválidas.' });
+    }
+    if (!user.activo || user.rol !== 'vendedor') {
+      return res.status(403).json({ error: 'Esta cuenta no tiene acceso al portal de vendedores.' });
     }
 
-    const { password: _password, ...safeUser } = user;
-    res.json({ token: signToken(user), usuario: safeUser });
-  } catch (error) {
-    next(error);
-  }
+    res.json({ token: signToken(user), usuario: publicUser(user) });
+  } catch (error) { next(error); }
 });
 
-router.get('/me', requireAuth, (req, res) => res.json({ usuario: req.user }));
+router.get('/me', requireAuth, (req, res) => res.json({ usuario: publicUser(req.user) }));
 
 module.exports = router;

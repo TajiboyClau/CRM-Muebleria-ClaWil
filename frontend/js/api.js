@@ -11,13 +11,13 @@ async function request(path, options = {}) {
     },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || data.mensaje || 'No se pudo completar la operación.');
+  if (!response.ok) throw new Error(data.error || Object.values(data.errores || {}).join(" ") || data.mensaje || 'No se pudo completar la operación.');
   return data;
 }
 
 export const api = {
   opportunityRequest: request,
-  login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ correo: email, clave: password }) }),
   clients: () => request('/clientes'),
   availableClients: () => request('/clientes/disponibles'),
   claimClient: (id) => request('/clientes/' + encodeURIComponent(id) + '/tomar', { method: 'POST' }),
@@ -26,7 +26,7 @@ export const api = {
   createOpportunity: (payload) => request('/oportunidades', { method: 'POST', body: JSON.stringify(payload) }),
   changeStage: (id, payload) => request(`/oportunidades/${id}/etapa`, { method: 'PATCH', body: JSON.stringify(payload) }),
   activities: () => request('/actividades'),
-  createActivity: (payload) => request('/actividades', { method: 'POST', body: JSON.stringify(payload) }),
-  completeActivity: (id, completada) => request(`/actividades/${id}/completar`, { method: 'PATCH', body: JSON.stringify({ completada }) }),
+  createActivity: (payload) => request('/clientes/' + encodeURIComponent(payload.cliente_id) + '/actividades', { method: 'POST', body: JSON.stringify(payload) }),
+  completeActivity: (id, completada) => request(`/actividades/${id}`, { method: 'PATCH', body: JSON.stringify({ completada: Boolean(completada) }) }),
   monthlySummary: (mes) => request('/reportes/resumen' + (mes ? '?mes=' + encodeURIComponent(mes) : '')),
 };
