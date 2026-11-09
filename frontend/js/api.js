@@ -2,23 +2,33 @@ const API_URL = 'http://localhost:3000/api';
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('crm_token');
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error('No se pudo conectar con la API. Verifique que esté encendida.');
+  }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || Object.values(data.errores || {}).join(" ") || data.mensaje || 'No se pudo completar la operación.');
+  if (!response.ok) {
+    if (response.status === 401 && token) {
+      window.dispatchEvent(new CustomEvent('crm:unauthorized', { detail: data.error || 'La sesión ya no es válida.' }));
+    }
+    throw new Error(data.error || Object.values(data.errores || {}).join(" ") || data.mensaje || 'No se pudo completar la operación.');
+  }
   return data;
 }
 
 export const api = {
   opportunityRequest: request,
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ correo: email, clave: password }) }),
-  clients: () => request('/clientes'),
+  clients: (query = '') => request('/clientes' + (query ? '?q=' + encodeURIComponent(query) : '')),
   availableClients: () => request('/clientes/disponibles'),
   claimClient: (id) => request('/clientes/' + encodeURIComponent(id) + '/tomar', { method: 'POST' }),
   createClient: (payload) => request('/clientes', { method: 'POST', body: JSON.stringify(payload) }),

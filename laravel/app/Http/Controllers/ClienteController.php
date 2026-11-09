@@ -17,19 +17,32 @@ class ClienteController extends Controller
     public function index(): View
     {
         $user = auth()->user();
+        $search = trim((string) request('q', ''));
+        $sellerFilter = request('vendedor_id');
+        $onlyAvailable = request()->boolean('sin_asignar');
         $clientes = Cliente::with('vendedor')
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                $query->where('nombre', 'like', "%{$search}%")
+                    ->orWhere('nit', 'like', "%{$search}%");
+            }))
             ->when($user->rol === 'supervisor', function ($query) use ($user) {
                 $query->where(function ($query) use ($user) {
                     $query->whereNull('vendedor_id')
                         ->orWhereHas('vendedor', fn ($seller) => $seller->where('supervisor_id', $user->id));
                 });
             })
+            ->when($sellerFilter !== null && $sellerFilter !== '', fn ($query) => $query->where('vendedor_id', $sellerFilter))
+            ->when($onlyAvailable, fn ($query) => $query->whereNull('vendedor_id'))
             ->orderBy('nombre')
             ->get();
 
         return view('clientes.index', [
             'clientes' => $clientes,
             'vendedores' => $this->availableSellers($user),
+            'team' => $this->teamSummary($user),
+            'search' => $search,
+            'sellerFilter' => $sellerFilter,
+            'onlyAvailable' => $onlyAvailable,
         ]);
     }
 
@@ -54,6 +67,8 @@ class ClienteController extends Controller
 
     public function edit(Cliente $cliente): View
     {
+        $this->ensureVisible($cliente, auth()->user());
+
         return view('clientes.edit', [
             'cliente' => $cliente,
             'vendedores' => $this->availableSellers(auth()->user()),
@@ -62,6 +77,7 @@ class ClienteController extends Controller
 
     public function update(UpdateClienteRequest $request, Cliente $cliente): RedirectResponse
     {
+        $this->ensureVisible($cliente, $request->user());
         $data = $request->validated();
 
         DB::transaction(function () use ($cliente, $data) {
@@ -75,6 +91,21 @@ class ClienteController extends Controller
         });
 
         return to_route('clientes.index')->with('status', 'Cliente actualizado correctamente.');
+    }
+
+    public function destroy(Cliente $cliente): RedirectResponse
+    {
+        abort_unless(auth()->user()?->rol === 'administrador', 403);
+
+        if ($cliente->oportunidades()->exists()) {
+            throw ValidationException::withMessages([
+                'cliente' => 'No puede eliminar un cliente que tiene oportunidades registradas.',
+            ]);
+        }
+
+        $cliente->delete();
+
+        return to_route('clientes.index')->with('status', 'Cliente eliminado correctamente.');
     }
 
     public function assign(AssignClienteRequest $request, Cliente $cliente): RedirectResponse
@@ -128,5 +159,44 @@ class ClienteController extends Controller
             ->when($user->rol === 'supervisor', fn ($query) => $query->where('supervisor_id', $user->id))
             ->orderBy('name')
             ->get();
+    }
+
+    private function ensureVisible(Cliente $cliente, User $user): void
+    {
+        if ($user->rol === 'supervisor'
+            && $cliente->vendedor_id !== null
+            && $cliente->vendedor?->supervisor_id !== $user->id) {
+            abort(404);
+        }
+    }
+
+    private function teamSummary(User $user)
+    {
+        $sellers = User::query()
+            ->where('rol', 'vendedor')
+            ->when($user->rol === 'supervisor', fn ($query) => $query->where('supervisor_id', $user->id))
+            ->withCount('clientes')
+            ->orderBy('name')
+            ->get();
+
+        $start = now('America/Guatemala')->startOfMonth()->utc();
+        $end = $start->copy()->addMonth();
+        $totals = DB::table('oportunidades')
+            ->leftJoin('oportunidad_producto', 'oportunidades.id', '=', 'oportunidad_producto.oportunidad_id')
+            ->where('oportunidades.etapa', 'ganada')
+            ->where('oportunidades.fecha_cierre', '>=', $start)
+            ->where('oportunidades.fecha_cierre', '<', $end)
+            ->groupBy('oportunidades.vendedor_id')
+            ->select('oportunidades.vendedor_id')
+            ->selectRaw('COUNT(DISTINCT oportunidades.id) AS ventas, COALESCE(SUM(cantidad * precio_unitario), 0) AS total')
+            ->get()
+            ->keyBy('vendedor_id');
+
+        return $sellers->map(function ($seller) use ($totals) {
+            $total = $totals->get($seller->id);
+            $seller->ventas_mes = (int) ($total->ventas ?? 0);
+            $seller->total_mes = (float) ($total->total ?? 0);
+            return $seller;
+        });
     }
 }

@@ -1,68 +1,153 @@
 # Verificación del CRM Mueblería ClaWil
 
-## Pruebas del panel Laravel
+## Estado de esta revisión
 
-Desde `laravel/` se ejecuta:
+La revisión separa comprobaciones ejecutadas de comprobaciones manuales.
+La suite Laravel, la API contra PostgreSQL, el panel HTTP y la concurrencia ya
+fueron ejecutados; queda una revisión visual final de la SPA.
+
+| Comprobación | Resultado actual | Evidencia |
+|---|---|---|
+| Sintaxis API Node | APROBADA | `cd api; npm run check` |
+| Sintaxis SPA | APROBADA | `cd frontend; npm run check` |
+| Colección Postman válida | APROBADA | JSON v2.1 con rutas del contrato |
+| Suite Laravel | APROBADA: 42 pruebas, 135 aserciones | `docker run ... artisan test` |
+| Migraciones en PostgreSQL | APROBADA: las 10 migraciones aparecen como `Ran` | `php artisan migrate:status` |
+| Datos compartidos | APROBADA: 9 usuarios, 10 productos, 19 clientes, 13 oportunidades, 43 historiales y 5 actividades | Consulta de conteos en PostgreSQL |
+| VerificacionSeeder aislado | APROBADA: 7 usuarios, 5 productos, 21 clientes, 11 oportunidades, 43 historiales y 4 actividades | PostgreSQL temporal + `migrate:fresh --seeder=VerificacionSeeder` |
+| Login, propiedad y cartera en API | APROBADA: 200, 401, 403 y 404 comprobados | Peticiones locales autenticadas |
+| Cifras de control | APROBADA para Valeria: 2, Q9,250.00 y Q2,512.88 | `GET /api/reportes/resumen?mes=2026-10` |
+| Cierre y regla sectorial | APROBADA: cierre normal; 422 sin medición; 200 con medición | Flujo API temporal y limpieza posterior |
+| Pruebas simultáneas | APROBADA: una toma 200 y la otra 409 | Dos vendedores tomaron el mismo cliente temporal |
+
+## Comandos reproducibles
+
+### Panel y base
+
+Desde `laravel/`, con PostgreSQL configurado en `.env`:
 
 ```text
+php artisan migrate:fresh --seed
 php artisan test
 ```
 
-La suite cubre autenticación, relaciones del CRM, permisos por rol, catálogo,
-clientes, oportunidades, actividades, reportes, administración de usuarios y
-la regla de medición para muebles a medida.
-
-El supervisor solo ve oportunidades de sus vendedores. Puede asignar clientes
-disponibles o de su equipo a vendedores de su equipo y liberar sus clientes.
-Si intenta asignar o liberar un cliente de otro equipo, el panel devuelve 404.
-
-## Pruebas de la API
-
-Desde `api/` se ejecutan:
+Para la semilla exacta del enunciado:
 
 ```text
+php artisan migrate:fresh --seeder=VerificacionSeeder
+```
+
+### API
+
+Desde `api/`:
+
+```text
+npm ci
 npm run check
 npm start
 ```
 
-Con la API levantada se comprueban `/health`, el login de vendedor, la cartera
-de clientes y `/api/reportes/resumen-mensual`. Las consultas utilizan `pg` con
-parámetros y la API no contiene migraciones.
+Después se importa `docs/postman_collection.json` y se ejecutan primero
+`Login vendedor correcto` y luego las operaciones protegidas. La API usa
+PostgreSQL, SQL parametrizado y no contiene migraciones.
 
-## Pruebas de la SPA
+### SPA
 
-La carpeta `frontend/` contiene una SPA estática con módulos JavaScript para:
+Desde `frontend/`:
 
-- Inicio de sesión con JWT.
-- Cartera de clientes.
-- Creación de clientes.
-- Embudo y cambios de etapa.
-- Actividades y marcado de completadas.
-- Resumen mensual.
+```text
+npm ci
+npm run check
+```
 
-El panel administrativo también incluye reportes por etapa y administración de
-cuentas, mientras que el supervisor consulta indicadores de su equipo.
+Abra `frontend/index.html` con Live Server o con cualquier servidor estático
+que escuche en el origen configurado.
 
-## Regla propia validada
+El portal debe abrirse desde el origen configurado en `SPA_ORIGIN`, por
+ejemplo `http://127.0.0.1:5500`.
 
-Una oportunidad con título que contiene `a medida` no puede pasar a `ganada`
-sin una actividad `reunion` completada cuya descripción contenga `medicion` o
-`medición`. La regla se prueba en Laravel y se aplica también en la API.
+## Matriz de aceptación
 
-## Datos de demostración
+| Requisito | Prueba/evidencia | Resultado |
+|---|---|---|
+| L1 Esquema y semillas | Migraciones; dos seeders; estado PostgreSQL y conteos | Aprobado |
+| L2 Cuentas y roles | `PanelAccessTest`, `AuthenticationTest`, `ReportAndUserManagementTest` | 42 pruebas aprobadas |
+| L3 Catálogo | `ProductoManagementTest`; desactivación y precio positivo | 42 pruebas aprobadas |
+| L4 Clientes | `ClienteManagementTest`; normalización, búsqueda, filtros, cupo y borrado seguro | 42 pruebas aprobadas |
+| L5 Equipos | `ClienteController`; filtros por supervisor y cartera del equipo | 42 pruebas aprobadas + revisión HTTP |
+| L6 Oportunidades/reportes | `OportunidadManagementTest`, `ReportAndUserManagementTest` y cifras de semilla | 42 pruebas + API aprobadas |
+| L7 Validación | FormRequests y reglas de API | Aprobado por suite y peticiones API |
+| A1-A2 Sesión | JWT HS256, `bcryptjs`, usuario activo leído en cada petición | Aprobado por API local |
+| A3 Cartera | Cliente disponible, máximo 10 y bloqueo transaccional | Aprobado; concurrencia 200/409 |
+| A4 Oportunidades | Líneas con precio copiado, historial y cierre transaccional | Aprobado por flujo API |
+| A5 Actividades | Filtro, propiedad, ISO 8601 y vencimiento | Aprobado por código y API |
+| A6 Resumen | Octubre 2026 y conversión Guatemala UTC-6 | Aprobado: cifras de Valeria |
+| A7 Errores | 400/401/403/404/409/422/500 JSON | API y colección preparados; falta ejecutar cada caso en Postman |
+| A8 Documentación | Colección con cada endpoint y errores | `docs/postman_collection.json` |
+| F1-F6 SPA | Sesión, cartera, embudo, actividades, resumen, XSS y responsive | Sintaxis aprobada; falta revisión visual manual |
+| S1-S8 Seguridad | Secretos ignorados, SQL parametrizado, CORS exacto y propiedad | Revisión de código y concurrencia aprobadas |
+| P1-P5 Proceso | Especificación, plan, matriz, AGENTS y bitácora | Documentos presentes |
 
-Los seeders crean usuarios, productos, clientes, oportunidades, actividades e
-historial de etapas conforme al enunciado. Las contraseñas de demostración solo
-se utilizan en el entorno local de pruebas y no se guardan en archivos `.env`.
-La cartera admite hasta 10 clientes por vendedor. El panel valida altas y asignaciones, y la API devuelve 409 al intentar superar el límite. Editar un cliente sin cambiar su vendedor no consume otro cupo.
-La SPA separa la cartera de los clientes disponibles. La lista de disponibles expone solo id y nombre. Si dos vendedores toman el mismo cliente a la vez, la API asigna el cliente a uno y devuelve 409 al otro.
-En la SPA, las oportunidades nacen en prospecto. Se avanza una etapa a la vez y se permite perder desde propuesta o negociación. El cierre guarda fecha e historial en la misma transacción. Ganar exige al menos un producto y conserva la regla de medición.
+## Cifras de control esperadas
 
-El resumen mensual usa la hora de Guatemala y los precios guardados en las
-líneas. Con VerificacionSeeder, Valeria obtiene 2 ventas por Q9,250.00 y un
-pronóstico de Q2,512.88 en octubre de 2026.
+Con `VerificacionSeeder` únicamente, usando octubre de 2026:
 
-La API recibe correo y clave. Configure JWT_SECRET con al menos 32 caracteres
-aleatorios y SPA_ORIGIN con el origen exacto del portal. El panel deja las
-oportunidades en consulta y las cuentas se administran mediante edición y
-desactivación. Panel y API normalizan el NIT y el teléfono antes de guardar.
+| Alcance | Ventas | Total vendido | Pronóstico | Cartera |
+|---|---:|---:|---:|---:|
+| Valeria López | 2 | Q9,250.00 | Q2,512.88 | 3 de 10 |
+| Diego Castillo | 1 | Q6,000.00 | Q112.50 | 2 de 10 |
+| Carlos Ajú | 1 | Q7,200.00 | Q4,125.75 | 9 de 10 |
+| Equipo de Sergio Ruiz | 3 | Q15,250.00 | Q2,625.38 | - |
+| Equipo de Sandra Pérez | 1 | Q7,200.00 | Q4,125.75 | - |
+| Toda la empresa | 4 | Q22,450.00 | Q6,751.13 | - |
+
+La respuesta de Valeria debe contener números JSON, no cadenas:
+
+```json
+{
+  "mes": "2026-10",
+  "ventas": 2,
+  "total": 9250,
+  "pronostico": 2512.88,
+  "cartera": { "clientes": 3, "maximo": 10 }
+}
+```
+
+La prueba aislada con `VerificacionSeeder` produjo exactamente las cifras de
+Valeria para octubre y noviembre; el reporte de octubre fue 2 ventas,
+Q9,250.00 y Q2,512.88, y el de noviembre fue 1 venta, Q3,600.00 y
+Q2,512.88.
+
+## Seguridad revisada
+
+- `.env` está ignorado en `laravel/` y `api/`; se entrega `.env.example` sin
+  credenciales reales.
+- Laravel crea los hashes; la API solo los compara con `bcryptjs`.
+- Las consultas de la API usan parámetros de PostgreSQL; los nombres de
+  columnas dinámicos se limitan a una lista interna.
+- El middleware vuelve a consultar al usuario y rechaza cuentas inactivas o
+  que ya no sean vendedores.
+- Las rutas filtran por `vendedor_id` y devuelven 404 para recursos ajenos.
+- CORS usa el origen exacto de `SPA_ORIGIN` y nunca `*`.
+- La SPA usa `textContent` o `escapeHtml` para datos recibidos de la API y
+  regresa al login cuando una petición autenticada responde 401.
+- Las operaciones de tomar cliente, cupo y cambio de etapa usan transacciones
+  y bloqueos.
+
+## Bitácora de IA y correcciones
+
+| Caso | Propuesta o defecto detectado | Cómo lo detectó el equipo | Corrección |
+|---|---|---|---|
+| 1 | El cambio de etapa de la API tenía `WHERE id =` sin el parámetro de la oportunidad | Revisión manual de la consulta antes de probar el cierre | Se agregó `WHERE id = $4` en `oportunidades.js` |
+| 2 | La documentación inicial decía que la verificación estaba completa, pero no distinguía pruebas ejecutadas de pendientes | Comparación con la sección P3 del enunciado | Se rehizo `docs/verificacion.md` con estados y evidencia |
+| 3 | El panel solo permitía crear y editar clientes al administrador, aunque el enunciado también permite esa tarea al supervisor dentro de su equipo | Matriz de roles L4/L5 contra rutas y FormRequests | Se habilitó el flujo para supervisores con filtrado de visibilidad y vendedores del equipo |
+| 4 | La sesión de la SPA permanecía visible después de recibir 401 | Revisión del criterio F1 | Se limpia la sesión y se muestra nuevamente el login mediante el evento `crm:unauthorized` |
+
+Los cambios anteriores deben conservarse en commits identificables del
+historial antes de crear la etiqueta final.
+
+## Pendiente antes de entregar
+
+Abrir la SPA a 375 px, iniciar sesión, cambiar de sección y confirmar
+visualmente que no aparece desplazamiento horizontal. Las comprobaciones de
+código, datos, API, panel, seguridad y concurrencia ya fueron ejecutadas.

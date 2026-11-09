@@ -1,50 +1,108 @@
 # CRM Mueblería ClaWil
 
-Sistema CRM de ventas para una tienda de muebles.
-
-## Objetivo
-
-Centralizar clientes, oportunidades de venta, actividades, productos y reportes
-para que administradores, supervisores y vendedores trabajen con la misma
-información.
-
-## Arquitectura prevista
-
-- `laravel/`: panel web para administrador y supervisor.
-- `api/`: API REST en Express para vendedores.
-- `frontend/`: SPA del vendedor con HTML, Bootstrap y JavaScript modular.
-- PostgreSQL 16: base de datos compartida por las tres piezas.
-
-## Estado del proyecto
-
-- [x] Repositorio creado.
-- [x] Especificación inicial.
-- [x] Plan de trabajo inicial.
-- [x] Panel Laravel con autenticación, catálogo, clientes, oportunidades y actividades.
-- [x] API REST con JWT, cartera, oportunidades, actividades y resumen mensual.
-- [x] SPA del vendedor con Bootstrap y JavaScript modular.
-- [x] Pruebas automatizadas, colección de Postman y verificación técnica.
-
-La documentación del proyecto se encuentra en `docs/`.
-
-## Ejecución local
-
-1. Preparar PostgreSQL 16 y configurar las variables de entorno de Laravel y la API.
-2. En `laravel/`, instalar dependencias, ejecutar migraciones y seeders, y levantar el panel.
-3. En `api/`, copiar `.env.example` a `.env`, instalar dependencias y ejecutar `npm start`.
-4. Abrir `frontend/index.html` con un servidor estático y usar las credenciales de un vendedor creado por los seeders.
-
-La API consulta el esquema creado por Laravel mediante `pg`; no contiene
-sentencias `CREATE` ni `ALTER`.
+CRM de ventas para una tienda de muebles. El sistema comparte una base
+PostgreSQL entre un panel Laravel para administración/supervisión, una API
+Express para vendedores y una SPA HTML/Bootstrap/JavaScript.
 
 ## Equipo
 
 - Claudia Estefanía Zorin Tajiboy - 202408031.
 - Wilberth Daniel Velasquez Flores - 202408061.
 
-## Herramienta de apoyo
+El equipo utiliza OpenCode con ChatGPT como apoyo. Ambos integrantes revisan,
+prueban y comprenden el código entregado.
 
-El desarrollo utilizará OpenCode con ChatGPT como apoyo de inteligencia
-artificial. El equipo revisará, probará y podrá explicar todo el código que se
-entregue.
+## Estructura
 
+- `laravel/`: panel Blade, autenticación, migraciones, seeders y reportes.
+- `api/`: servicio REST con JWT, `pg` y SQL parametrizado.
+- `frontend/`: SPA del vendedor sin framework.
+- `docs/`: especificación, plan, verificación y colección de Postman.
+
+## Requisitos
+
+- PHP 8.4 y Composer.
+- Node.js 24 LTS y npm.
+- PostgreSQL 16.
+- Docker Desktop es opcional, pero se usa para ejecutar PostgreSQL y las
+  pruebas del panel de forma reproducible.
+
+## Configuración local
+
+1. Cree una base `crm_muebleria` y un usuario con permisos para Laravel. No
+   suba archivos `.env`.
+2. En `laravel/`, copie `.env.example` a `.env`, configure PostgreSQL, genere
+   la clave y prepare dependencias:
+
+   ```text
+   composer install
+   copy .env.example .env
+   php artisan key:generate
+   php artisan migrate:fresh --seed
+   ```
+
+3. En otra terminal, desde `api/`:
+
+   ```text
+   npm ci
+   copy .env.example .env
+   npm run check
+   npm start
+   ```
+
+   Configure `JWT_SECRET` con al menos 32 caracteres y `SPA_ORIGIN` con el
+   origen exacto desde donde se servirá la SPA.
+
+4. Sirva `frontend/` con un servidor estático. Si usa VS Code Live Server,
+   configure el puerto/origen para que coincida con `SPA_ORIGIN`.
+
+   ```text
+   npm run check
+   ```
+
+5. Abra el panel en `http://localhost:8000`, la API en
+   `http://localhost:3000/health` y el portal del vendedor en el origen de la
+   SPA.
+
+## Semillas
+
+Para cargar la semilla común del enunciado:
+
+```text
+cd laravel
+php artisan migrate:fresh --seeder=VerificacionSeeder
+```
+
+Para cargar la semilla común y los datos de muebles:
+
+```text
+php artisan migrate:fresh --seed
+```
+
+La contraseña pública de demostración es `Ventas2026`. Úsela únicamente en
+el entorno local de la semilla.
+
+## Pruebas y verificación
+
+```text
+cd laravel
+php artisan test
+
+cd ../api
+npm run check
+
+cd ../frontend
+npm run check
+```
+
+Importe `docs/postman_collection.json` para comprobar el contrato completo de
+la API. Las cifras esperadas de octubre de 2026 y la matriz de aceptación se
+encuentran en `docs/verificacion.md`.
+
+## Git y entrega
+
+El trabajo se organiza en `clau`, `wil` y `main`. Cada cambio debe tener un
+commit descriptivo y `main` debe contener la versión integrada. Antes de
+entregar, ejecute las pruebas, actualice la etiqueta `entrega-final` al commit
+verificado y entregue el enlace del repositorio junto con el identificador de
+esa etiqueta.

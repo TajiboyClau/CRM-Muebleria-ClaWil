@@ -8,7 +8,8 @@ class StoreClienteRequest extends ClienteRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->rol === 'administrador' && $this->user()->activo;
+        return in_array($this->user()?->rol, ['administrador', 'supervisor'], true)
+            && $this->user()->activo;
     }
 
     public function rules(): array

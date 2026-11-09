@@ -77,6 +77,56 @@ class ClienteManagementTest extends TestCase
         ]);
     }
 
+    public function test_supervisor_can_create_and_edit_a_client_in_their_team(): void
+    {
+        $supervisor = User::factory()->create([
+            'rol' => 'supervisor',
+            'activo' => true,
+            'email_verified_at' => now(),
+        ]);
+        $seller = User::factory()->create([
+            'rol' => 'vendedor',
+            'activo' => true,
+            'supervisor_id' => $supervisor->id,
+        ]);
+
+        $this->actingAs($supervisor)
+            ->post(route('clientes.store'), [
+                'nombre' => 'Muebles del Valle',
+                'telefono' => '55551237',
+                'vendedor_id' => $seller->id,
+            ])
+            ->assertRedirect(route('clientes.index'));
+
+        $cliente = Cliente::where('nombre', 'Muebles del Valle')->firstOrFail();
+
+        $this->actingAs($supervisor)
+            ->patch(route('clientes.update', $cliente), [
+                'nombre' => 'Muebles del Valle Premium',
+                'telefono' => '55551238',
+                'vendedor_id' => $seller->id,
+            ])
+            ->assertRedirect(route('clientes.index'));
+
+        $this->assertDatabaseHas('clientes', [
+            'id' => $cliente->id,
+            'nombre' => 'Muebles del Valle Premium',
+            'vendedor_id' => $seller->id,
+        ]);
+    }
+
+    public function test_administrator_can_delete_only_a_client_without_opportunities(): void
+    {
+        $admin = User::factory()->create(['rol' => 'administrador', 'activo' => true]);
+        $client = Cliente::create(['nombre' => 'Sin oportunidades', 'telefono' => '55551239']);
+
+        $this->actingAs($admin)
+            ->delete(route('clientes.destroy', $client))
+            ->assertRedirect(route('clientes.index'));
+
+        $this->assertDatabaseMissing('clientes', ['id' => $client->id]);
+    }
+
     public function test_panel_rejects_an_eleventh_client_but_allows_editing_an_existing_client(): void
     {
         $admin = User::factory()->create(['rol' => 'administrador', 'activo' => true]);

@@ -1,43 +1,56 @@
-# Plan de trabajo
+# Plan de trabajo del CRM Mueblería ClaWil
 
-## Fases
+## Arquitectura
 
-| Fase | Actividades | Responsable | Estado |
-|---|---|---|---|
-| Especificación | Sector, roles, regla propia y criterios de aceptación | Equipo | Completo |
-| Laravel | Migraciones, seeders, autenticación y panel | Equipo | Completo |
-| API | JWT, middleware, clientes, oportunidades y reportes | Equipo | Completo |
-| SPA | Login, cartera, embudo, actividades y resumen mensual | Equipo | Completo |
-| Integración | Conectar panel, API, SPA y PostgreSQL | Equipo | Completo |
-| Verificación | Pruebas, seguridad, Postman y documentación | Equipo | Completo |
+| Pieza | Tecnología | Responsabilidad |
+|---|---|---|
+| Panel | Laravel 13, Blade, Breeze y Eloquent | Esquema, cuentas, catálogo, clientes, equipos y reportes |
+| API | Node.js 24, Express 5, `pg`, JWT y `bcryptjs` | Operaciones del vendedor en JSON; SQL parametrizado |
+| SPA | HTML, Bootstrap 5.3 y módulos JavaScript | Sesión, cartera, embudo, actividades y resumen |
+| Datos | PostgreSQL 16 | Base compartida creada por migraciones de Laravel |
 
-La API y la SPA utilizarán el esquema definido por las migraciones de Laravel
-en PostgreSQL 16.
-Las tareas se organizarán en ramas de trabajo y se integrarán después de ser
-probadas.
+## Fases, tareas y responsable
 
-## Integrantes
+Los responsables indican quién preparó y revisó principalmente cada bloque;
+ambos integrantes deben poder explicarlo en la defensa.
 
-- Claudia Estefanía Zorin Tajiboy - 202408031.
-- Wilberth Daniel Velasquez Flores - 202408061.
+| Fase | Tareas | Responsable principal | Revisión conjunta | Estado |
+|---|---|---|---|---|
+| 1. Especificación | Sector, regla de muebles a medida, roles, contrato y criterios Dado/Cuando/Entonces | Claudia | Wilberth | Completa |
+| 2. Esquema y semillas | Migraciones, restricciones, `VerificacionSeeder` y `SectorSeeder` | Claudia | Wilberth | Completa |
+| 3. Panel | Breeze, roles, cuentas, catálogo, clientes, equipos y reportes | Wilberth | Claudia | Completa |
+| 4. API | Login JWT, autorización, cartera, oportunidades, actividades y resumen | Wilberth | Claudia | Completa |
+| 5. SPA | Login, localStorage de sesión, cartera, oportunidades, actividades y reportes | Claudia | Wilberth | Completa |
+| 6. Integración | PostgreSQL compartido, CORS, fechas UTC, precios guardados y errores | Equipo | Equipo | Completa |
+| 7. Verificación | Pruebas Laravel, chequeos Node/SPA, Postman, seguridad y cifras | Equipo | Equipo | En ejecución final |
 
-## Herramienta de apoyo
+## Solicitudes al agente durante el desarrollo
 
-Se utilizará OpenCode con ChatGPT como apoyo de inteligencia artificial. Todo
-resultado será revisado, probado y comprendido por ambos integrantes.
+En cada fase se pidió al agente que respetara el contrato, utilizara
+migraciones para el esquema, no expusiera secretos, validara en el servidor,
+mantuviera SQL parametrizado en la API y agregara pruebas o evidencia para
+cada funcionalidad. Las decisiones se revisaron antes de integrarse a las
+ramas.
 
-## Acuerdos de trabajo
+## Flujo de ramas y entrega
 
-- Los cambios grandes se organizarán en ramas de trabajo.
-- Los commits deben describir un cambio concreto.
-- Se revisará la integración antes de mezclar cambios.
-- Ambos integrantes probarán y explicarán las tres piezas del sistema.
+- `main`: versión integrada para entregar.
+- `clau`: trabajo de Claudia.
+- `wil`: trabajo de Wilberth.
+- Los cambios se incorporan mediante commits descriptivos y revisión antes
+  de actualizar `main`.
+- La etiqueta `entrega-final` debe apuntar al último commit que pase la
+  verificación completa. La etiqueta anterior se actualizará solo después de
+  ejecutar las pruebas finales.
 
-## Entregables realizados
+## Verificación de cada fase
 
-1. Revisar y aprobar `docs/especificacion.md`.
-2. Completar los nombres del equipo.
-3. Confirmar la regla propia.
-4. Crear el entorno Laravel, API y PostgreSQL.
-5. Implementar panel, API, SPA y pruebas de integración básicas.
-
+1. Instalar dependencias sin subir `vendor/` ni `node_modules/`.
+2. Levantar PostgreSQL y ejecutar `php artisan migrate:fresh --seed`.
+3. Ejecutar `php artisan test` en el panel.
+4. Ejecutar `npm run check` y levantar la API.
+5. Ejecutar la colección de Postman con la semilla de verificación.
+6. Abrir la SPA con un servidor estático, comprobar CORS y probar las tres
+   puertas con los mismos datos.
+7. Registrar resultados, defectos encontrados y correcciones en
+   `docs/verificacion.md`.

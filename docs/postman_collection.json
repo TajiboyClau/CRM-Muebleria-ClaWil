@@ -1,46 +1,78 @@
 {
   "info": {
-    "name": "CRM Mueblería ClaWil",
-    "description": "Operaciones principales de la API para vendedores.",
+    "name": "CRM Mueblería ClaWil - contrato REST",
+    "description": "Colección de verificación del contrato de la API para vendedores, incluyendo rutas principales y errores de validación.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "base_url", "value": "http://localhost:3000" },
     { "key": "token", "value": "" },
-    { "key": "cliente_id", "value": "" },
-    { "key": "oportunidad_id", "value": "" },
-    { "key": "actividad_id", "value": "" }
+    { "key": "cliente_id", "value": "1" },
+    { "key": "oportunidad_id", "value": "1" },
+    { "key": "actividad_id", "value": "1" },
+    { "key": "linea_id", "value": "1" }
   ],
   "item": [
     {
       "name": "Health",
-      "request": { "method": "GET", "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] } }
+      "request": { "method": "GET", "url": "{{base_url}}/health" }
     },
     {
-      "name": "Login vendedor",
-      "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.collectionVariables.set('token', data.token);"] } }],
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"correo\": \"valeria@crm.test\",\n  \"clave\": \"Ventas2026\"\n}" },
-        "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
-      }
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Login vendedor correcto",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));", "const data = pm.response.json();", "pm.collectionVariables.set('token', data.token);", "pm.test('Devuelve token y usuario', () => pm.expect(data).to.have.all.keys('token', 'usuario'));" ] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"correo\": \"valeria@crm.test\",\n  \"clave\": \"Ventas2026\"\n}" }, "url": "{{base_url}}/api/auth/login" }
+        },
+        {
+          "name": "Login administrador rechazado",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"correo\": \"admin@crm.test\",\n  \"clave\": \"Ventas2026\"\n}" }, "url": "{{base_url}}/api/auth/login" }
+        },
+        {
+          "name": "Login con credenciales inválidas",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"correo\": \"noexiste@crm.test\",\n  \"clave\": \"incorrecta\"\n}" }, "url": "{{base_url}}/api/auth/login" }
+        }
+      ]
     },
     {
-      "name": "Clientes de mi cartera",
-      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/clientes", "host": ["{{base_url}}"], "path": ["api", "clientes"] } }
+      "name": "Clientes y actividades",
+      "item": [
+        { "name": "Listar mi cartera", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/clientes?q=Quetzal" } },
+        { "name": "Listar disponibles (solo id y nombre)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/clientes/disponibles" } },
+        { "name": "Crear cliente", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Mueblería de prueba\",\n  \"nit\": \"CF\",\n  \"telefono\": \"+502 5555-1299\",\n  \"correo\": \"prueba@muebles.test\"\n}" }, "url": "{{base_url}}/api/clientes" } },
+        { "name": "Tomar cliente disponible", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/clientes/{{cliente_id}}/tomar" } },
+        { "name": "Detalle de cliente", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/clientes/{{cliente_id}}" } },
+        { "name": "Actualizar cliente", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Cliente actualizado\",\n  \"telefono\": \"55551299\"\n}" }, "url": "{{base_url}}/api/clientes/{{cliente_id}}" } },
+        { "name": "Crear actividad", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"reunion\",\n  \"descripcion\": \"Revisar medidas del mueble\",\n  \"vence_en\": \"2030-01-15T09:00:00-06:00\"\n}" }, "url": "{{base_url}}/api/clientes/{{cliente_id}}/actividades" } },
+        { "name": "Listar actividades pendientes", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/actividades?estado=pendiente" } },
+        { "name": "Completar actividad", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"completada\": true\n}" }, "url": "{{base_url}}/api/actividades/{{actividad_id}}" } },
+        { "name": "Error: filtro de actividades inválido", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/actividades?estado=otro" } }
+      ]
     },
     {
-      "name": "Oportunidades",
-      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/oportunidades", "host": ["{{base_url}}"], "path": ["api", "oportunidades"] } }
+      "name": "Productos y oportunidades",
+      "item": [
+        { "name": "Listar productos activos", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/productos" } },
+        { "name": "Listar oportunidades", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/oportunidades?etapa=negociacion" } },
+        { "name": "Crear oportunidad", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"cliente_id\": {{cliente_id}},\n  \"titulo\": \"Amueblar sala de prueba\"\n}" }, "url": "{{base_url}}/api/oportunidades" } },
+        { "name": "Detalle de oportunidad", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}" } },
+        { "name": "Actualizar título", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Amueblar sala actualizado\"\n}" }, "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}" } },
+        { "name": "Agregar producto", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"producto_id\": 1,\n  \"cantidad\": 1\n}" }, "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}/productos" } },
+        { "name": "Cambiar cantidad de línea", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 2\n}" }, "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}/productos/{{linea_id}}" } },
+        { "name": "Quitar línea", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}/productos/{{linea_id}}" } },
+        { "name": "Cambiar etapa", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"etapa\": \"calificado\"\n}" }, "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}/etapa" } },
+        { "name": "Error: cambio de etapa inválido", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"etapa\": \"ganada\"\n}" }, "url": "{{base_url}}/api/oportunidades/{{oportunidad_id}}/etapa" } }
+      ]
     },
     {
-      "name": "Actividades",
-      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/actividades", "host": ["{{base_url}}"], "path": ["api", "actividades"] } }
-    },
-    {
-      "name": "Resumen mensual",
-      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/reportes/resumen", "host": ["{{base_url}}"], "path": ["api", "reportes", "resumen"] } }
+      "name": "Reportes y seguridad",
+      "item": [
+        { "name": "Resumen de octubre 2026", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/reportes/resumen?mes=2026-10" } },
+        { "name": "Resumen con ruta compatible", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/reportes/resumen-mensual?mes=2026-10" } },
+        { "name": "Error: sin token", "request": { "method": "GET", "url": "{{base_url}}/api/clientes" } },
+        { "name": "Error: mes inválido", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/reportes/resumen?mes=2026-99" } }
+      ]
     }
   ]
 }

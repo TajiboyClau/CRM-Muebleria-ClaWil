@@ -11,6 +11,7 @@ vendor/
 dist/
 build/
 coverage/
+output/
 
 # Laravel and local tooling
 laravel/storage/*.key

@@ -221,7 +221,7 @@ router.patch('/:id/etapa', async (req, res, next) => {
       const { rows: [updated] } = await connection.query(
         `UPDATE oportunidades
          SET etapa = $1, motivo_perdida = $2, fecha_cierre = CASE WHEN $3 THEN NOW() ELSE NULL END, updated_at = NOW()
-         WHERE id =  RETURNING *, fecha_cierre AT TIME ZONE 'UTC' AS cierre_utc`,
+         WHERE id = $4 RETURNING *, fecha_cierre AT TIME ZONE 'UTC' AS cierre_utc`,
         [etapa, reason, CLOSED.includes(etapa), item.id],
       );
       await connection.query(
