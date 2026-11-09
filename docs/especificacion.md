@@ -61,7 +61,7 @@ en UTC. La API no ejecuta `CREATE` ni `ALTER` y no usa ORM.
 |---|---|---|
 | `users` | `name`, `email`, `password`, `rol`, `supervisor_id`, `activo` | Rol válido; vendedor con supervisor; cuenta activa; contraseña con hash de Laravel |
 | `productos` | `nombre`, `precio`, `activo` | Nombre único; precio decimal mayor que cero; desactivación en vez de borrado |
-| `clientes` | `vendedor_id`, `nombre`, `nit`, `telefono`, `correo` | NIT y teléfono únicos; consumidor final como `NULL`; teléfono normalizado |
+| `clientes` | `vendedor_id`, `nombre`, `nit`, `telefono`, `correo` | NIT y teléfono únicos; consumidor final como `NULL`; teléfono normalizado y protegido por `CHECK` en PostgreSQL (`^[2-9][0-9]{7}$`) |
 | `oportunidades` | `cliente_id`, `vendedor_id`, `titulo`, `etapa`, `motivo_perdida`, `fecha_cierre` | Etapas válidas; motivo solo al perder; fecha solo al cerrar |
 | `oportunidad_producto` | `oportunidad_id`, `producto_id`, `cantidad`, `precio_unitario` | Producto único por oportunidad; cantidad 1-999; precio decimal copiado del catálogo |
 | `historial_etapas` | `oportunidad_id`, `usuario_id`, `etapa_anterior`, `etapa_nueva`, `created_at` | Registro de creación y de cada cambio dentro de la misma transacción |
@@ -76,6 +76,10 @@ El NIT se compacta, se convierte a mayúsculas, se quitan ceros iniciales y se
 valida con módulo 11. `CF` se guarda como `NULL` y se devuelve como `CF`. El
 teléfono elimina separadores y el prefijo guatemalteco `+502` o `502`, y se
 guarda como ocho dígitos.
+
+La migración `2026_11_09_000008_add_client_phone_check` refuerza en la base de
+datos que el teléfono normalizado tenga ocho dígitos y empiece entre 2 y 9;
+la API y el panel mantienen además la validación y los mensajes de usuario.
 
 Las oportunidades nacen en `prospecto`; se avanza una etapa abierta a la vez.
 Se puede perder desde `propuesta` o `negociacion`, ganar desde `negociacion`,
@@ -136,7 +140,7 @@ llaves internas de propietario ni registros de otro vendedor.
 | L6 | Oportunidades de consulta y reportes por mes, equipo y producto | `ReporteController` y vistas |
 | L7 | Validación del servidor con mensajes en español | FormRequests, reglas de API y pruebas |
 | A1-A7 | JWT, propiedad, cartera, embudo, actividades, reportes y errores | rutas Express, `pg` parametrizado y colección Postman |
-| A8 | Colección con rutas principales y errores | `docs/postman_collection.json` |
+| A8 | Colección con rutas principales y errores | `docs/api.postman_collection.json` |
 | F1-F6 | SPA, sesión, cartera, embudo, actividades, resumen y responsive | `frontend/index.html`, `frontend/js`, `styles.css` |
 | S1-S8 | Hashes, secretos, SQL parametrizado, privacidad, CORS, XSS y concurrencia | `.gitignore`, `.env.example`, revisión y pruebas |
 

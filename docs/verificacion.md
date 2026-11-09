@@ -3,8 +3,8 @@
 ## Estado de esta revisión
 
 La revisión separa comprobaciones ejecutadas de comprobaciones manuales.
-La suite Laravel, la API contra PostgreSQL, el panel HTTP y la concurrencia ya
-fueron ejecutados; queda una revisión visual final de la SPA.
+La suite Laravel, la API contra PostgreSQL, el panel HTTP, la concurrencia y la
+revisión visual de la SPA fueron ejecutados.
 
 | Comprobación | Resultado actual | Evidencia |
 |---|---|---|
@@ -12,9 +12,9 @@ fueron ejecutados; queda una revisión visual final de la SPA.
 | Sintaxis SPA | APROBADA | `cd frontend; npm run check` |
 | Colección Postman válida | APROBADA | JSON v2.1 con rutas del contrato |
 | Suite Laravel | APROBADA: 42 pruebas, 135 aserciones | `docker run ... artisan test` |
-| Migraciones en PostgreSQL | APROBADA: las 10 migraciones aparecen como `Ran` | `php artisan migrate:status` |
+| Migraciones en PostgreSQL | APROBADA: las 11 migraciones aparecen como `Ran`, incluida la restricción `CHECK` del teléfono | `php artisan migrate:status` y consulta de `pg_constraint` |
 | Datos compartidos | APROBADA: 9 usuarios, 10 productos, 19 clientes, 13 oportunidades, 43 historiales y 5 actividades | Consulta de conteos en PostgreSQL |
-| VerificacionSeeder aislado | APROBADA: 7 usuarios, 5 productos, 21 clientes, 11 oportunidades, 43 historiales y 4 actividades | PostgreSQL temporal + `migrate:fresh --seeder=VerificacionSeeder` |
+| VerificacionSeeder aislado | APROBADA: 7 usuarios, 5 productos, 21 clientes, 11 oportunidades, 43 historiales y 4 actividades | PostgreSQL temporal + migración nueva + `migrate:fresh --seeder=VerificacionSeeder` |
 | Login, propiedad y cartera en API | APROBADA: 200, 401, 403 y 404 comprobados | Peticiones locales autenticadas |
 | Cifras de control | APROBADA para Valeria: 2, Q9,250.00 y Q2,512.88 | `GET /api/reportes/resumen?mes=2026-10` |
 | Cierre y regla sectorial | APROBADA: cierre normal; 422 sin medición; 200 con medición | Flujo API temporal y limpieza posterior |
@@ -47,7 +47,7 @@ npm run check
 npm start
 ```
 
-Después se importa `docs/postman_collection.json` y se ejecutan primero
+Después se importa `docs/api.postman_collection.json` y se ejecutan primero
 `Login vendedor correcto` y luego las operaciones protegidas. La API usa
 PostgreSQL, SQL parametrizado y no contiene migraciones.
 
@@ -82,9 +82,9 @@ ejemplo `http://127.0.0.1:5500`.
 | A4 Oportunidades | Líneas con precio copiado, historial y cierre transaccional | Aprobado por flujo API |
 | A5 Actividades | Filtro, propiedad, ISO 8601 y vencimiento | Aprobado por código y API |
 | A6 Resumen | Octubre 2026 y conversión Guatemala UTC-6 | Aprobado: cifras de Valeria |
-| A7 Errores | 400/401/403/404/409/422/500 JSON | API y colección preparados; falta ejecutar cada caso en Postman |
-| A8 Documentación | Colección con cada endpoint y errores | `docs/postman_collection.json` |
-| F1-F6 SPA | Sesión, cartera, embudo, actividades, resumen, XSS y responsive | Sintaxis aprobada; falta revisión visual manual |
+| A7 Errores | 400/401/403/404/409/422/500 JSON | Rutas, middleware, validadores y colección revisados; casos de autenticación, propiedad, conflicto y regla sectorial ejecutados |
+| A8 Documentación | Colección con cada endpoint y errores | `docs/api.postman_collection.json` |
+| F1-F6 SPA | Sesión, cartera, búsqueda, embudo por columnas, historial, actividades, resumen, XSS y responsive | Sintaxis y revisión visual móvil aprobadas |
 | S1-S8 Seguridad | Secretos ignorados, SQL parametrizado, CORS exacto y propiedad | Revisión de código y concurrencia aprobadas |
 | P1-P5 Proceso | Especificación, plan, matriz, AGENTS y bitácora | Documentos presentes |
 
@@ -133,6 +133,8 @@ Q2,512.88.
   regresa al login cuando una petición autenticada responde 401.
 - Las operaciones de tomar cliente, cupo y cambio de etapa usan transacciones
   y bloqueos.
+- PostgreSQL rechaza directamente teléfonos no normalizados mediante la
+  restricción `chk_clientes_telefono`; la prueba con `12345678` fue rechazada.
 
 ## Bitácora de IA y correcciones
 
@@ -142,12 +144,15 @@ Q2,512.88.
 | 2 | La documentación inicial decía que la verificación estaba completa, pero no distinguía pruebas ejecutadas de pendientes | Comparación con la sección P3 del enunciado | Se rehizo `docs/verificacion.md` con estados y evidencia |
 | 3 | El panel solo permitía crear y editar clientes al administrador, aunque el enunciado también permite esa tarea al supervisor dentro de su equipo | Matriz de roles L4/L5 contra rutas y FormRequests | Se habilitó el flujo para supervisores con filtrado de visibilidad y vendedores del equipo |
 | 4 | La sesión de la SPA permanecía visible después de recibir 401 | Revisión del criterio F1 | Se limpia la sesión y se muestra nuevamente el login mediante el evento `crm:unauthorized` |
+| 5 | El contador de cartera usaba el número de resultados después de una búsqueda y podía mostrar `1 de 10` aunque la cartera tuviera 3 clientes | Prueba visual de búsqueda en la SPA | El indicador usa `summary.cartera.clientes` y conserva el cupo real |
 
 Los cambios anteriores deben conservarse en commits identificables del
 historial antes de crear la etiqueta final.
 
-## Pendiente antes de entregar
+## Cierre de la verificación visual
 
-Abrir la SPA a 375 px, iniciar sesión, cambiar de sección y confirmar
-visualmente que no aparece desplazamiento horizontal. Las comprobaciones de
-código, datos, API, panel, seguridad y concurrencia ya fueron ejecutadas.
+Se abrió la SPA con un viewport móvil, se inició sesión con la semilla, se
+probó la búsqueda de cartera, el tablero de oportunidades, el resumen y el
+formulario de actividades. El contenido se reorganizó en columnas responsivas
+y no apareció desplazamiento horizontal. Las comprobaciones de código, datos,
+API, panel, seguridad, concurrencia y presentación fueron ejecutadas.

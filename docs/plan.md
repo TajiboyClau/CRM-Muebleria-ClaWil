@@ -22,7 +22,7 @@ ambos integrantes deben poder explicarlo en la defensa.
 | 4. API | Login JWT, autorización, cartera, oportunidades, actividades y resumen | Wilberth | Claudia | Completa |
 | 5. SPA | Login, localStorage de sesión, cartera, oportunidades, actividades y reportes | Claudia | Wilberth | Completa |
 | 6. Integración | PostgreSQL compartido, CORS, fechas UTC, precios guardados y errores | Equipo | Equipo | Completa |
-| 7. Verificación | Pruebas Laravel, chequeos Node/SPA, Postman, seguridad y cifras | Equipo | Equipo | En ejecución final |
+| 7. Verificación | Pruebas Laravel, chequeos Node/SPA, Postman, seguridad, cifras y revisión móvil | Equipo | Equipo | Completa |
 
 ## Solicitudes al agente durante el desarrollo
 
@@ -42,6 +42,9 @@ ramas.
 - La etiqueta `entrega-final` debe apuntar al último commit que pase la
   verificación completa. La etiqueta anterior se actualizará solo después de
   ejecutar las pruebas finales.
+- `spec-v1` apunta al commit inicial de especificación (`909e41a`), antes de
+  los commits de implementación, como exige el proceso guiado por
+  especificaciones.
 
 ## Verificación de cada fase
 

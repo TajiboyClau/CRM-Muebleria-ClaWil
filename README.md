@@ -95,7 +95,7 @@ cd ../frontend
 npm run check
 ```
 
-Importe `docs/postman_collection.json` para comprobar el contrato completo de
+Importe `docs/api.postman_collection.json` para comprobar el contrato completo de
 la API. Las cifras esperadas de octubre de 2026 y la matriz de aceptación se
 encuentran en `docs/verificacion.md`.
 
